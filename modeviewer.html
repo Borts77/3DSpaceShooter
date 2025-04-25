@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Viewer: Spaceship.glb</title>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif;}
+        canvas { display: block; }
+        #model-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="model-viewer-canvas"></canvas>
+    <div id="model-info"></div>
+
+    <script type="importmap">
+    {
+      "imports": {
+        "three":       "https://unpkg.com/three@0.163.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+      }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        const canvas = document.getElementById('model-viewer-canvas');
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x223344); // A slightly more pleasant dark blue-grey background
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000); // Increased far plane
+        // Initial camera position will be calculated later
+
+        const controls = new OrbitControls(camera, canvas);
+        controls.enableDamping = true; // Corrected typo from enableDDamping
+        controls.dampingFactor = 0.05;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+
+        // Add some basic lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Slightly stronger ambient light
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5); // Brighter directional light
+        directionalLight.position.set(5, 10, 7.5).normalize();
+        scene.add(directionalLight);
+
+         const directionalLight2 = new THREE.DirectionalLight(0xffffff, 1.2); // Second directional light
+        directionalLight2.position.set(-5, -10, -7.5).normalize();
+        scene.add(directionalLight2);
+
+
+        const modelInfoDiv = document.getElementById('model-info');
+
+        // Load the GLB model
+        const loader = new GLTFLoader();
+        loader.load(
+            'Spaceship.glb', // Make sure this path is correct!
+            function (gltf) {
+                // Model loaded successfully
+                const model = gltf.scene;
+                scene.add(model);
+
+                // --- Center the model and calculate size ---
+                const bbox = new THREE.Box3().setFromObject(model);
+                const center = bbox.getCenter(new THREE.Vector3());
+                const size = bbox.getSize(new THREE.Vector3());
+
+                // Center the model's geometry around its origin
+                model.position.sub(center);
+
+                // --- Position Camera to Fit Model ---
+                const maxDim = Math.max(size.x, size.y, size.z);
+                const fov = camera.fov * (Math.PI / 180); // Convert fov to radians
+                let cameraDistance = Math.abs(maxDim / 2 / Math.tan(fov / 2)); // Basic distance to fit model
+
+                // Add some padding to the view
+                cameraDistance *= 1.5; // Adjust padding factor as needed
+
+                camera.position.copy(center); // Start camera position at the model's center
+                camera.position.z += cameraDistance; // Move camera back along Z axis
+
+                // Ensure controls target the model's center
+                controls.target.copy(center);
+                controls.update(); // Update controls to apply the new target and position
+
+                // --- Display Model Info ---
+                modelInfoDiv.innerHTML = `
+                    <h2>Model Info:</h2>
+                    <p>Size (XYZ): ${size.x.toFixed(2)}, ${size.y.toFixed(2)}, ${size.z.toFixed(2)}</p>
+                    <p>Center (XYZ): ${center.x.toFixed(2)}, ${center.y.toFixed(2)}, ${center.z.toFixed(2)}</p>
+                    <p>Camera Distance: ${cameraDistance.toFixed(2)}</p>
+                    <p>Use mouse to orbit, zoom, and pan.</p>
+                `;
+
+
+                console.log('Model loaded:', model);
+                console.log('Bounding Box:', bbox);
+                console.log('Size:', size);
+                console.log('Center:', center);
+            },
+            function (xhr) {
+                // Progress
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            function (error) {
+                // Error during loading
+                console.error('An error happened loading the model:', error);
+                modelInfoDiv.innerHTML = `Error loading model: ${error.message}`;
+            }
+        );
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        animate();
+
+        // Handle window resizing
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+             // Re-calculate camera distance and position on resize if needed for perfect fit,
+             // but for simplicity, just updating aspect ratio is often enough with orbit controls.
+        });
+
+    </script>
+</body>
+</html>
