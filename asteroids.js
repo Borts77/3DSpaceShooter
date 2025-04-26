@@ -1,6 +1,6 @@
 // asteroids.js
 import * as THREE from 'three';
-import { createExplosion } from './explosions.js'; // <<< FIX 2: Import createExplosion
+import { createExplosion } from './explosions.js'; // Import createExplosion
 
 /* ---------- creación ---------- */
 // Modified to create different size asteroids initially
@@ -48,12 +48,11 @@ export function createAsteroidField (scene, count = 50) { // Reduced initial cou
 
 /* ---------- actualización cada frame ---------- */
 export function updateAsteroids (asteroids, delta, envSpeedFactor) {
-    // <<< FIX 1: Add a check if asteroids array exists and has elements to prevent TypeError
     if (!asteroids || asteroids.length === 0) {
-        return; // If no asteroids, do nothing
+        return;
     }
 
-  asteroids.forEach(a => { // This is likely the line causing the TypeError if asteroids is undefined/null
+  asteroids.forEach(a => {
     // Mantener la influencia de envSpeedFactor, pero la base speed es menor ahora
     // Ensure asteroids orbit around (0,0,0) which is where the black hole is
     a.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), a.userData.orbitSpeed * envSpeedFactor * delta);
@@ -73,63 +72,67 @@ export function updateAsteroids (asteroids, delta, envSpeedFactor) {
 }
 
 // *** New function to handle asteroid collision and breaking ***
-// The createExplosion function is now available here due to the import
 export function handleAsteroidCollision(scene, asteroids, asteroid, bullets, explosions, bullet) {
     const size = asteroid.userData.size;
 
-    // Create explosion at the asteroid's position
-    explosions.push(createExplosion(scene, asteroid.position)); // createExplosion is now imported and works
+    explosions.push(createExplosion(scene, asteroid.position));
 
-    // Remove the original asteroid from the scene and the array
     scene.remove(asteroid);
     const index = asteroids.indexOf(asteroid);
     if (index > -1) {
         asteroids.splice(index, 1);
     }
 
-    // Divide asteroids large and medium
     if (size === 'large' || size === 'medium') {
         const newSize = size === 'large' ? 'medium' : 'small';
         const numNewAsteroids = 3;
-        const fragmentSpeed = size === 'large' ? 100 : 200; // Speed of the fragments
+        // Ajusta la velocidad inicial de los fragmentos si quieres que salgan disparados más rápido o lento
+        const fragmentSpeed = size === 'large' ? 100 : 150;
 
         for (let i = 0; i < numNewAsteroids; i++) {
-            const newRadius = size === 'large' ? 7 : 3; // Radius for medium and small fragments
-             const baseGeom  = new THREE.IcosahedronGeometry(1, 0); // Base geometry
+            // <<< Modificado: Aumentar estos radios para hacer los fragmentos más grandes
+            const newRadius = size === 'large' ? 10 : 5; // Antes: 7 y 3. Ahora: 10 (medianos) y 5 (pequeños)
+            const baseGeom  = new THREE.IcosahedronGeometry(1, 0); // Base geometry
 
             const mat = new THREE.MeshStandardMaterial({ color: 0x606060, flatShading: true });
             const newAsteroid = new THREE.Mesh(baseGeom, mat);
-             const scale = newRadius / 1;
-             newAsteroid.scale.set(scale, scale, scale);
+            // La escala se calcula en base al nuevo radio deseado y el tamaño de la geometría base (1)
+            const scale = newRadius / 1;
+            newAsteroid.scale.set(scale, scale, scale);
 
             newAsteroid.userData = {
                 size: newSize,
                 radius: newRadius,
-                // Adjust orbit speed for fragments - could be faster or inherit/modify parent speed
-                orbitSpeed: asteroid.userData.orbitSpeed * (size === 'large' ? 1.2 : 1.5) // Slightly faster than parent
+                // Ajusta la velocidad de órbita de los fragmentos. Ligeramente más rápida que el padre.
+                orbitSpeed: asteroid.userData.orbitSpeed * (size === 'large' ? 1.1 : 1.3)
             };
 
-            // Position the smaller asteroids around the original
+            // Posicionar los asteroides más pequeños alrededor de la posición original
             const offsetDirection = new THREE.Vector3(
                 Math.random() - 0.5,
                 Math.random() - 0.5,
                 Math.random() - 0.5
             ).normalize();
-            const spawnOffsetDistance = asteroid.userData.radius + newRadius; // Spawn slightly outside the original
-             const newPosition = asteroid.position.clone().add(offsetDirection.clone().multiplyScalar(spawnOffsetDistance * 0.8)); // Adjust multiplier for spacing
+            // Ajusta la distancia a la que aparecen los fragmentos del centro de la explosión
+            const spawnOffsetDistance = asteroid.userData.radius + newRadius;
+             const newPosition = asteroid.position.clone().add(offsetDirection.clone().multiplyScalar(spawnOffsetDistance * 0.6));
             newAsteroid.position.copy(newPosition);
 
-            // Give fragments an initial velocity away from the explosion point
+            // Dar a los fragmentos una velocidad inicial lejos del punto de explosión, sumando la velocidad del padre
             const fragmentVelocity = offsetDirection.multiplyScalar(fragmentSpeed);
-            newAsteroid.userData.velocity = fragmentVelocity; // Store initial velocity
+             if (asteroid.userData.velocity) { // Si el asteroide padre ya tenía velocidad (era un fragmento)
+                  newAsteroid.userData.velocity = asteroid.userData.velocity.clone().add(fragmentVelocity);
+             } else { // Si el asteroide padre era uno grande inicial (sin velocidad userData)
+                  newAsteroid.userData.velocity = fragmentVelocity;
+             }
+
 
             scene.add(newAsteroid);
             asteroids.push(newAsteroid);
         }
     }
 
-    // Remove the bullet that hit the asteroid (assuming this function is called after bullet collision detected)
-     if (bullet && bullet.parent) { // Check if bullet exists and is still in scene
+     if (bullet && bullet.parent) { // Asegurarse de que la bala existe y todavía está en la escena antes de intentar removerla
          bullet.parent.remove(bullet);
          const bulletIndex = bullets.indexOf(bullet);
          if (bulletIndex > -1) {
