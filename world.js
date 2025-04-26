@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 
 // Export fieldSize so main.js can use it for boundaries
-export const fieldSize = 4000; // Tamaño del área cúbica para los puntos
+export const fieldSize = 4000; // Tamaño del área cúbica para los puntos (Puedes ajustar este tamaño general del mundo si quieres)
 
 export function createWorld() {
     const scene = new THREE.Scene();
@@ -55,8 +55,8 @@ export function createWorld() {
     // --- Fondo de Puntos (Grid Estrellas) ---
     // Parámetros para la grid de puntos (ajusta estos valores para el tamaño del mundo
     // y la densidad de puntos para el rendimiento y la sensación de velocidad)
-    const numPoints = 4000; // Número de puntos (menos que en la simulación para empezar)
-    // const fieldSize = 4000; // Moved fieldSize declaration and export above
+    const numPoints = 50000; // <<<--- Ajusta este número para menos puntos y mejor rendimiento
+    // const fieldSize = 4000; // Already declared and exported at the top
 
     const pointsGeometry = new THREE.BufferGeometry();
     const positions = [];
