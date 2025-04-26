@@ -1,6 +1,6 @@
 // asteroids.js
 import * as THREE from 'three';
-import { createExplosion } from './explosions.js'; // <<< Import createExplosion
+import { createExplosion } from './explosions.js'; // <<< FIX 2: Import createExplosion
 
 /* ---------- creación ---------- */
 // Modified to create different size asteroids initially
@@ -48,7 +48,7 @@ export function createAsteroidField (scene, count = 50) { // Reduced initial cou
 
 /* ---------- actualización cada frame ---------- */
 export function updateAsteroids (asteroids, delta, envSpeedFactor) {
-    // <<< Add a check if asteroids array exists and has elements to prevent TypeError
+    // <<< FIX 1: Add a check if asteroids array exists and has elements to prevent TypeError
     if (!asteroids || asteroids.length === 0) {
         return; // If no asteroids, do nothing
     }
