@@ -19,11 +19,13 @@ import {
 
 import {
   createAsteroidField,
-  updateAsteroids
+  updateAsteroids,
+  handleAsteroidCollision // Import the new collision handling function
 } from './asteroids.js';
 
 import {
-  updateBullets
+  updateBullets,
+  fireBullet // Ensure fireBullet is imported
 } from './bullets.js';
 
 import {
@@ -32,9 +34,6 @@ import {
 } from './explosions.js';
 
 import { initAudio, loadAndPlayMusic } from './audio.js';
-
-// *** Importar la función fireBullet de bullets.js (la creamos allí) ***
-import { fireBullet } from './bullets.js';
 
 // Import background music variables from audio.js if you need to stop them
 // Make sure these are exported from audio.js
@@ -342,18 +341,19 @@ function animate() {
 
 
         /* 5 — Colisiones bala–asteroide */
-        const bulletRadius = 1.1;
-        for (let i = asteroids.length - 1; i >= 0; i--) {
-          const a = asteroids[i];
-          for (let j = bullets.length - 1; j >= 0; j--) {
-            const b = bullets[j];
-            if (a.position.distanceToSquared(b.position) < (a.userData.radius + bulletRadius) ** 2) {
-              explosions.push(createExplosion(scene, a.position));
-              scene.remove(a);
-              asteroids.splice(i, 1);
-              scene.remove(b);
-              bullets.splice(j, 1);
-              break;
+        // Iterate backwards to safely remove elements
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          const b = bullets[i];
+           // Check for collision with asteroids
+          for (let j = asteroids.length - 1; j >= 0; j--) {
+            const a = asteroids[j]; // Use 'j' for asteroid index
+             // Check for collision using asteroid's radius and bullet size
+            if (a.position.distanceToSquared(b.position) < (a.userData.radius + 1.1) ** 2) { // Assuming bullet radius is 1.1
+                // Call the new collision handling function
+                handleAsteroidCollision(scene, asteroids, a, bullets, explosions, b);
+
+                 // The bullet is removed inside handleAsteroidCollision, so we just need to break the inner loop
+                break; // Exit inner loop after finding a collision for this bullet
             }
           }
         }
@@ -368,7 +368,7 @@ function animate() {
             setVisualDamage(currentTime);
             explosions.push(createExplosion(scene, playerShip.position));
             const dir = playerShip.position.clone().sub(a.position).normalize();
-            playerShip.position.addScaledVector(dir, 5);
+            playerShip.position.addScaledVector(dir, 5); // empujón
             scene.remove(a);
             asteroids.splice(i, 1);
             // Don't break here, a single asteroid could potentially cause multiple hits in one frame if not handled carefully,
@@ -414,9 +414,8 @@ function animate() {
 
     // Update asteroids ONLY in the game loop with the current envSpeedFactor
     // The asteroid rotation in the menu/game over will be handled by menuAnimate
-    if (playerShip) { // Only update asteroids with envFactor when game is active
-        updateAsteroids(asteroids, delta, envSpeedFactor);
-    }
+     // Only update asteroids with envFactor when game is active
+    updateAsteroids(asteroids, delta, envSpeedFactor);
 
 
      // Render the scene with the game camera when the game is active
