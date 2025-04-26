@@ -1,5 +1,6 @@
 // asteroids.js
 import * as THREE from 'three';
+import { createExplosion } from './explosions.js'; // <<< Import createExplosion
 
 /* ---------- creación ---------- */
 // Modified to create different size asteroids initially
@@ -47,7 +48,12 @@ export function createAsteroidField (scene, count = 50) { // Reduced initial cou
 
 /* ---------- actualización cada frame ---------- */
 export function updateAsteroids (asteroids, delta, envSpeedFactor) {
-  asteroids.forEach(a => {
+    // <<< Add a check if asteroids array exists and has elements to prevent TypeError
+    if (!asteroids || asteroids.length === 0) {
+        return; // If no asteroids, do nothing
+    }
+
+  asteroids.forEach(a => { // This is likely the line causing the TypeError if asteroids is undefined/null
     // Mantener la influencia de envSpeedFactor, pero la base speed es menor ahora
     // Ensure asteroids orbit around (0,0,0) which is where the black hole is
     a.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), a.userData.orbitSpeed * envSpeedFactor * delta);
@@ -56,15 +62,23 @@ export function updateAsteroids (asteroids, delta, envSpeedFactor) {
     a.rotation.x += 0.3 * delta;
     a.rotation.y += 0.5 * delta;
     a.rotation.z += 0.2 * delta; // Add some rotation on Z
+
+    // If you added velocity to fragments in handleAsteroidCollision, update here
+     if (a.userData.velocity) {
+         a.position.addScaledVector(a.userData.velocity, delta);
+         // Optionally apply damping to fragment velocity
+         a.userData.velocity.multiplyScalar(0.99);
+     }
   });
 }
 
 // *** New function to handle asteroid collision and breaking ***
+// The createExplosion function is now available here due to the import
 export function handleAsteroidCollision(scene, asteroids, asteroid, bullets, explosions, bullet) {
     const size = asteroid.userData.size;
 
     // Create explosion at the asteroid's position
-    explosions.push(createExplosion(scene, asteroid.position));
+    explosions.push(createExplosion(scene, asteroid.position)); // createExplosion is now imported and works
 
     // Remove the original asteroid from the scene and the array
     scene.remove(asteroid);
