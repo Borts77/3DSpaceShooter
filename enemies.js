@@ -136,20 +136,36 @@ function createBossInstance(level) {
 // --- Spawning (Generación de Oleadas) ---
 export function spawnWave(scene, level, enemiesArray) {
     console.log(`Spawning Wave for Level ${level}`);
-    const enemiesToSpawn = 3; // Número base de enemigos normales
+    const enemiesToSpawn = 3;
+    const minR = 150, maxR = 300;
+    const safeR = 180; // distancia mínima a la nave
+
     for (let i = 0; i < enemiesToSpawn; i++) {
         const enemy = createEnemyInstance(level);
-        if (enemy) {
-            scene.add(enemy);
-            enemiesArray.push(enemy);
-            // Pequeño retraso visual al aparecer (opcional)
-            enemy.scale.set(0.1, 0.1, 0.1);
-            enemy.userData.spawnTime = performance.now();
-        }
+        if (!enemy) continue;
+
+        // generar r entre minR y maxR, pero forzar r ≥ safeR
+        let r = THREE.MathUtils.randFloat(minR, maxR);
+        if (r < safeR) r = safeR + THREE.MathUtils.randFloat(0, maxR - safeR);
+
+        const angle = Math.random() * Math.PI * 2;
+        const y     = THREE.MathUtils.randFloatSpread(100);
+        enemy.position.set(
+            Math.cos(angle) * r,
+            y,
+            Math.sin(angle) * r
+        );
+
+        scene.add(enemy);
+        enemiesArray.push(enemy);
+
+        // efecto de aparición
+        enemy.scale.set(0.1, 0.1, 0.1);
+        enemy.userData.spawnTime = performance.now();
     }
-    // Devolver el número de enemigos creados en esta oleada normal
     return enemiesToSpawn;
 }
+
 
 export function spawnBoss(scene, level, enemiesArray) {
     console.log(`Spawning Boss for Level ${level}`);
