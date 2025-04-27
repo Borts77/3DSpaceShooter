@@ -732,7 +732,7 @@ function handlePlayerDeath() {
     if (playerShip && scene) { // Asegurarse de que la nave y la escena existen
         explosions.push(createExplosion(scene, playerShip.position.clone())); // Explosión grande
         scene.remove(playerShip);
-        playerShip = null; // Importante: establece a null después de remover de la escena
+        // playerShip = null; // Importante: establece a null después de remover de la escena, marca error vamos a ver si esto lo soluciona. 
     } else {
         console.error("PlayerShip or Scene not defined when handling player death.");
     }
