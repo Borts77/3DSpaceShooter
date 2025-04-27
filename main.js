@@ -786,31 +786,37 @@ function showGameOverScreen(message = "GAME OVER", isVictory = false) {
 
 
 // --- Función Cámara de Seguimiento ---
-function updateFollowCamera(camera, target) {
-    if (!camera || !target) return;
+function updateFollowCamera(camera, target, velocity) {
+  if (!camera || !target) return;
 
-    const offset = new THREE.Vector3(0, 12, -45); // Arriba y atrás
-    const desiredPosition = target.localToWorld(offset.clone());
+  // — Parámetros ajustables —
+  const baseOffset = new THREE.Vector3(0, 12, -25);   // Posición base: 12 arriba y 25 atrás
+  const speedZoomFactor = 0.05;                       // cuánto se aleja por unidad de velocidad
+  const minDistance = 15;                             // distancia mínima al target
+  const lerpSpeed = 0.1;                              // suavizado de cámara
 
-    const minDistance = 30; // 🚀 <- Distancia mínima SEGURA
+  // — Offset dinámico según velocidad —
+  const speed = velocity.length();                    // velocidad current del ship
+  const dynamicOffset = baseOffset.clone().add(
+    new THREE.Vector3(0, 0, - speed * speedZoomFactor)
+  );
 
-    // Calculamos la distancia real
-    const currentDistance = camera.position.distanceTo(target.position);
+  // — Calcula la posición deseada en mundo —
+  const desiredPos = target.localToWorld(dynamicOffset.clone());
 
-    if (currentDistance < minDistance) {
-        // Si está demasiado cerca, ponemos la cámara directamente donde queremos
-        camera.position.copy(desiredPosition);
-    } else {
-        // Si todo bien, suavizamos el movimiento normal
-        camera.position.lerp(desiredPosition, 0.08);
-    }
+  // — Control de distancia mínima —
+  const distanceToTarget = camera.position.distanceTo(target.position);
+  if (distanceToTarget < minDistance) {
+    camera.position.copy(desiredPos);
+  } else {
+    camera.position.lerp(desiredPos, lerpSpeed);
+  }
 
-    const lookAtOffset = new THREE.Vector3(0, 3, 50); // Punto hacia donde mira
-    const lookAtPoint = target.localToWorld(lookAtOffset.clone());
-
-    camera.lookAt(lookAtPoint);
+  // — A dónde mira la cámara —
+  const lookAtOffset = new THREE.Vector3(0, 3, 50);
+  const lookAtPoint = target.localToWorld(lookAtOffset.clone());
+  camera.lookAt(lookAtPoint);
 }
-
 // --- Actualizar UI del Boost (basado en tiempo transcurrido) ---
 function updateBoostUI(delta) {
     // Esta función se llama en el loop animate
