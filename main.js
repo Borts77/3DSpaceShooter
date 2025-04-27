@@ -83,6 +83,7 @@ const MAX_LEVEL = 10; // O el nivel máximo que quieras
 // *** OTRAS VARIABLES GLOBALES DE JUEGO (Input, Boost, Disparo) ***
 let keys = {}; // Para el input <--- ESTA ES LA DECLARACIÓN
 
+
 const input = { // Usamos 'input' como objeto para agrupar los estados
     pitchUp: false, pitchDown: false,
     yawLeft: false, yawRight: false,
@@ -100,6 +101,29 @@ const keyMap = {
     KeyN: 'boost',
     Space: 'shoot'
 };
+
+// --- Manejo de Input (nuevo simple) --- ← Ahora sí
+window.addEventListener('keydown', (event) => {
+    const action = keyMap[event.code];
+    if (action !== undefined) {
+        if (action === 'thrust' || action === 'boost' || action === 'shoot') {
+            input[action] = true;
+        } else {
+            input[action] = 1;
+        }
+    }
+});
+
+window.addEventListener('keyup', (event) => {
+    const action = keyMap[event.code];
+    if (action !== undefined) {
+        if (action === 'thrust' || action === 'boost' || action === 'shoot') {
+            input[action] = false;
+        } else {
+            input[action] = 0;
+        }
+    }
+});
 
 let velocity = new THREE.Vector3(); // Velocidad de traslación del jugador
 const damping = 0.98; // Factor de amortiguación
@@ -165,7 +189,7 @@ async function initGame() {
 
         // *** Mover estas dos líneas AQUÍ, DESPUÉS DEL AWAIT ***
         setupUIListeners(); // <-- Ahora se llama DESPUÉS de que playerShip se asigna
-        setupInputListeners(); // <-- Y input listeners también
+        // setupInputListeners(); // <-- Y input listeners también
 
         if (playerShip) {
             console.log("Nave del jugador cargada.");
@@ -787,55 +811,6 @@ function updateFollowCamera(camera, target) {
 }
 
 
-// --- Manejo de Input (Teclado) ---
-function setupInputListeners() {
-    console.log("Setting up input listeners..."); // Log para depurar
-    // Resetear estado de keys al configurar listeners (útil al reiniciar)
-    keys = {}; // <-- Se usa keys aquí
-
-    document.addEventListener('keydown', (event) => {
-        keys[event.key.toLowerCase()] = true; // <-- Y aquí
-
-        // Lógica para acciones que solo ocurren una vez al presionar la tecla
-        // if (event.key.toLowerCase() === 'm') {
-         //   constantThrust = !constantThrust; // Toggle thrust
-          //  console.log("Constant Thrust:", constantThrust ? "ON" : "OFF");
-       // }
-
-        // Lógica para el Boost (activar al presionar si está listo)
-        if (event.key.toLowerCase() === 'n' && isBoostReady) {
-            isBoosting = true;
-            isBoostReady = false; // Desactiva hasta que termine el cooldown
-            // Usar clock.getElapsedTime() sólo si clock está definido, aunque en animate/initGame debería estar
-            lastBoostTime = clock ? clock.getElapsedTime() : performance.now(); // Registrar tiempo de uso
-
-            // Aplicar impulso inicial del boost (esto podría ir en updatePlayer si quieres aplicarlo gradualmente)
-            // const boostForce = 250;
-            // const boostDirection = new THREE.Vector3();
-            // if(playerShip && playerShip.userData.velocity) {
-            //     playerShip.getWorldDirection(boostDirection);
-            //     playerShip.userData.velocity.addScaledVector(boostDirection, boostForce);
-            // }
-
-            // playSound('boost'); // Sonido de boost si lo implementas
-            console.log("Boost Activated");
-
-            // Programa el fin del efecto de boost
-            setTimeout(() => {
-                isBoosting = false;
-                console.log("Boost Effect Ended");
-            },  3000); // BOOST_DURATION está en segundos, setTimeout espera ms
-        }
-    });
-
-    document.addEventListener('keyup', (event) => {
-        keys[event.key.toLowerCase()] = false; // <-- Y aquí
-        // constantThrust (M) se maneja en keydown para ser un toggle
-        // Boost (N) isBoosting se desactiva después de BOOST_DURATION
-        // Shoot (Espacio) se maneja en el loop animate o en un handler de keydown con cooldown
-    });
-    console.log("Input listeners setup complete."); // Log de confirmación
-}
 
 // --- Actualizar UI del Boost (basado en tiempo transcurrido) ---
 function updateBoostUI(delta) {
