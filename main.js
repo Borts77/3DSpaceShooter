@@ -2,7 +2,7 @@
 // ... (otras importaciones)
 import { createWorld, fieldSize } from './world.js'; // Asegúrate que fieldSize está exportado
 import { updateGameplay } from './gameplay.js';
-import { loadPlayerShip, updatePlayer, applyDamage, isDestroyed, getScaledShipSize, setVisualDamage, checkVisualDamage, revertDamageAppearance, playerShip } from './player.js'; // Añadir playerShip si no está ya exportado/accesible
+import { loadPlayerShip, updatePlayer, applyDamage, isDestroyed, getScaledShipSize, setVisualDamage, checkVisualDamage, revertDamageAppearance } from './player.js'; // Añadir playerShip si no está ya exportado/accesible
 import { createAsteroidField, updateAsteroids, handleAsteroidCollision } from './asteroids.js';
 import { updateBullets, fireBullet } from './bullets.js';
 import { createExplosion, updateExplosions } from './explosions.js';
