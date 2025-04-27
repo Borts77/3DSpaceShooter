@@ -278,7 +278,7 @@ function startGame() {
         scene.add(playerShip);
     }
     playerShip.visible = true;
-    playerShip.position.set(0, 0, 70);
+    playerShip.position.set(22, 10, 100);
     playerShip.rotation.set(0, -Math.PI / 2, 0);
     playerShip.rotation.order = 'YXZ';
     playerShip.userData.velocity = new THREE.Vector3(0, 0, 0);
