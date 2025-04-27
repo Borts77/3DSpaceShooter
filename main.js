@@ -272,22 +272,23 @@ function startGame() {
 
 
     // Resetear jugador (posición, vida, etc.)
-    if (playerShip && scene) { // Asegurarse de que existen
-        playerShip.position.set(0, 0, 70); // Posición inicial segura
-        playerShip.rotation.set(0, -Math.PI / 2, 0); // Orientación inicial
-        playerShip.rotation.order = 'YXZ'; // Asegurar orden correcto
-        playerShip.userData.velocity = new THREE.Vector3(0, 0, 0);
-        // playerShip.userData.rotationVelocity = new THREE.Vector3(0, 0, 0); // Si usas rotación por velocidad
-        playerShip.userData.hits = 0; // Resetear golpes
-        playerShip.visible = true; // Asegurar que sea visible
-        revertDamageAppearance(playerShip); // Quitar apariencia de daño si la tenía
-        scene.add(playerShip); // Añadir a la escena si no estaba
-    } else {
-        console.error("Intento de iniciar juego sin nave de jugador o escena definida.");
-        // Manejar error - mostrar mensaje o volver al menú
-        showGameOverScreen("Error al iniciar"); // Mostrar pantalla de error simple
-        return;
-    }
+   if (playerShip && scene) {
+    // Asegurarse que la nave esté en la escena (por si la habían removido)
+    if (!scene.children.includes(playerShip)) {
+        scene.add(playerShip);
+    }
+    playerShip.visible = true;
+    playerShip.position.set(0, 0, 70);
+    playerShip.rotation.set(0, -Math.PI / 2, 0);
+    playerShip.rotation.order = 'YXZ';
+    playerShip.userData.velocity = new THREE.Vector3(0, 0, 0);
+    playerShip.userData.hits = 0;
+    revertDamageAppearance(playerShip);
+} else {
+    console.error("Intento de iniciar juego sin nave de jugador o escena definida.");
+    showGameOverScreen("Error al iniciar");
+    return;
+}
 
     // Resetear estado del Boost y Disparo
     // Usar clock.getElapsedTime() sólo si clock está definido, aunque en initGame debería estar
@@ -725,22 +726,19 @@ function checkBulletAsteroidCollisions(allBullets, asteroids, scene, playerBulle
 
 // --- Manejo Muerte del Jugador ---
 function handlePlayerDeath() {
-    console.log("Player Destroyed!");
-    gameStarted = false; // Detener el juego
-    // playSound('game_over'); // O un sonido de explosión grande
+    console.log("Player Destroyed!");
+    gameStarted = false;
 
-    if (playerShip && scene) { // Asegurarse de que la nave y la escena existen
-        explosions.push(createExplosion(scene, playerShip.position.clone())); // Explosión grande
-        scene.remove(playerShip);
-        // playerShip = null; // Importante: establece a null después de remover de la escena, marca error vamos a ver si esto lo soluciona. 
-    } else {
-        console.error("PlayerShip or Scene not defined when handling player death.");
-    }
+    if (playerShip && scene) {
+        explosions.push(createExplosion(scene, playerShip.position.clone()));
+        scene.remove(playerShip); // Solo lo sacamos de la escena, NO lo anulamos
+    } else {
+        console.error("PlayerShip or Scene not defined when handling player death.");
+    }
 
-
-    // Mostrar pantalla de Game Over
-    showGameOverScreen("GAME OVER");
+    showGameOverScreen("GAME OVER");
 }
+
 
 // --- Mostrar Pantalla Game Over / Victoria ---
 function showGameOverScreen(message = "GAME OVER", isVictory = false) {
