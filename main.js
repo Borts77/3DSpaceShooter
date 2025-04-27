@@ -789,25 +789,16 @@ function showGameOverScreen(message = "GAME OVER", isVictory = false) {
 function updateFollowCamera(camera, target) {
     if (!camera || !target) return;
 
-    const offset = new THREE.Vector3(0, 12, -45); // MÁS ALTO Y MÁS LEJOS
+    const offset = new THREE.Vector3(0, 12, -45); // MÁS ARRIBA Y MÁS LEJOS
     const desiredPosition = target.localToWorld(offset.clone());
 
-    camera.position.lerp(desiredPosition, 0.08);
+    camera.position.lerp(desiredPosition, 0.08); // Solo lerp, sin minDistance
 
     const lookAtOffset = new THREE.Vector3(0, 3, 50);
     const lookAtPoint = target.localToWorld(lookAtOffset.clone());
 
     camera.lookAt(lookAtPoint);
 }
-
-    // Hacer que la cámara mire un punto ligeramente delante de la nave
-    const lookAtOffset = new THREE.Vector3(0, 3, 50); // Punto delante de la nave (ajusta)
-    const lookAtPoint = target.localToWorld(lookAtOffset.clone());
-
-    camera.lookAt(lookAtPoint); // Mirada más directa (puedes suavizar con lerp si quieres)
-}
-
-
 
 // --- Actualizar UI del Boost (basado en tiempo transcurrido) ---
 function updateBoostUI(delta) {
