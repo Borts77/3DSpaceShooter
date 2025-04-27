@@ -789,12 +789,23 @@ function showGameOverScreen(message = "GAME OVER", isVictory = false) {
 function updateFollowCamera(camera, target) {
     if (!camera || !target) return;
 
-    const offset = new THREE.Vector3(0, 12, -45); // MÁS ARRIBA Y MÁS LEJOS
+    const offset = new THREE.Vector3(0, 12, -45); // Arriba y atrás
     const desiredPosition = target.localToWorld(offset.clone());
 
-    camera.position.lerp(desiredPosition, 0.08); // Solo lerp, sin minDistance
+    const minDistance = 30; // 🚀 <- Distancia mínima SEGURA
 
-    const lookAtOffset = new THREE.Vector3(0, 3, 50);
+    // Calculamos la distancia real
+    const currentDistance = camera.position.distanceTo(target.position);
+
+    if (currentDistance < minDistance) {
+        // Si está demasiado cerca, ponemos la cámara directamente donde queremos
+        camera.position.copy(desiredPosition);
+    } else {
+        // Si todo bien, suavizamos el movimiento normal
+        camera.position.lerp(desiredPosition, 0.08);
+    }
+
+    const lookAtOffset = new THREE.Vector3(0, 3, 50); // Punto hacia donde mira
     const lookAtPoint = target.localToWorld(lookAtOffset.clone());
 
     camera.lookAt(lookAtPoint);
