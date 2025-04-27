@@ -787,18 +787,17 @@ function showGameOverScreen(message = "GAME OVER", isVictory = false) {
 
 // --- Función Cámara de Seguimiento ---
 function updateFollowCamera(camera, target) {
-    if (!camera || !target) return;
+    if (!camera || !target) return;
 
-    const offset = new THREE.Vector3(0, 8, -25); // Distancia detrás y arriba de la nave (ajusta)
-    const desiredPosition = target.localToWorld(offset.clone()); // Calcular posición deseada
+    const offset = new THREE.Vector3(0, 12, -45); // MÁS ALTO Y MÁS LEJOS
+    const desiredPosition = target.localToWorld(offset.clone());
 
-    // Suavizar movimiento de la cámara (Lerp)
-    // camera.position.lerp(desiredPosition, 0.08); // Ajusta el valor 0.08 para más/menos suavidad viejo
-    const minDistance = 10; // Distancia mínima permitida
-if (camera.position.distanceTo(target.position) < minDistance) {
-    camera.position.copy(desiredPosition);
-} else {
     camera.position.lerp(desiredPosition, 0.08);
+
+    const lookAtOffset = new THREE.Vector3(0, 3, 50);
+    const lookAtPoint = target.localToWorld(lookAtOffset.clone());
+
+    camera.lookAt(lookAtPoint);
 }
 
     // Hacer que la cámara mire un punto ligeramente delante de la nave
