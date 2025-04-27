@@ -1,13 +1,14 @@
 // main.js
 // main.js
 import * as THREE from 'three'; // <-- AQUÍ ESTÁ LA LÍNEA 2
-/* ---------- motor WebGL ---------- */
-const canvas = document.getElementById('game-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+
 /* ---------- escena y cámara ---------- */
 const clock = new THREE.Clock();
 import { createCamera, updateCameraControls, setCameraTarget } from './camera.js'; // Mantener createCamera para el menú
 // Import fieldSize from world.js
+/* ---------- motor WebGL ---------- */
+const canvas = document.getElementById('game-canvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 // Asegúrate que fieldSize está exportado
 // ... y siguen las otras importaciones
 // ... (otras importaciones)
