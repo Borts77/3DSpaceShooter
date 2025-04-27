@@ -419,29 +419,44 @@ function animate() {
 
 
     // --- Actualizaciones de Entidades (usando delta y factores de velocidad) ---
-    if (playerShip && playerShip.visible) {
-        // Mover y rotar nave (updatePlayer debe manejar input, velocidad de traslación y rotación)
-        // updatePlayer ahora maneja el input, velocidad de traslación y rotación, boost y disparo
-        // Necesita el objeto input, delta, playerSpeedFactor, velocity, boostCooldownTime, currentTime, isBoostReady, boostCooldownInfo
-        // La función updatePlayer en player.js necesitará ser adaptada para recibir todos estos parámetros si quieres mover esa lógica allí
-        // Por ahora, asumiendo que updatePlayer en player.js solo hace ROTACIÓN:
-        updatePlayer(playerShip, input, delta, playerSpeedFactor); // Pasa solo input y rotación speedFactor
+   if (playerShip && playerShip.visible) {
+    // 1. Rotar nave
+    updatePlayer(playerShip, delta, playerSpeedFactor, input);
 
-        // Lógica de traslación (movida de updatePlayer a main.js si updatePlayer solo hace rotación)
-        // Si updatePlayer maneja traslación, esta sección no sería necesaria aquí.
-        // const invertThrust = true;
-        // const forwardDirectionFactor = invertThrust ? 1 : -1;
-        // const thrustDirectionWorld = new THREE.Vector3(0, 0, forwardDirectionFactor).applyQuaternion(playerShip.quaternion).normalize();
+    // 2. Mover nave
+    const invertThrust = true;
+    const forwardDirectionFactor = invertThrust ? 1 : -1;
+    const thrustDirectionWorld = new THREE.Vector3(0, 0, forwardDirectionFactor).applyQuaternion(playerShip.quaternion).normalize();
 
-        // if (input.thrust) {
-        //     velocity.addScaledVector(thrustDirectionWorld, thrustSpeed * delta * playerSpeedFactor);
-        // }
-        // ... lógica de boost ...
-        // velocity.multiplyScalar(damping);
-        // playerShip.position.addScaledVector(velocity, delta);
-        // ... boundary checking ...
+    if (input.thrust) {
+        velocity.addScaledVector(thrustDirectionWorld, thrustSpeed * delta * playerSpeedFactor);
+    }
 
+    if (input.boost && isBoostReady) {
+        velocity.addScaledVector(thrustDirectionWorld, boostSpeed * playerSpeedFactor);
+        isBoostReady = false;
+        lastBoostTime = currentTime;
+    }
 
+    velocity.multiplyScalar(damping);
+    playerShip.position.addScaledVector(velocity, delta);
+
+    // 3. Disparar
+    if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
+        const shipDirection = new THREE.Vector3();
+        playerShip.getWorldDirection(shipDirection);
+        const bullet = fireBullet(playerShip.position, shipDirection, velocity);
+        if (bullet) {
+            bullet.userData.isPlayerBullet = true;
+            scene.add(bullet);
+            bullets.push(bullet);
+            lastShotTime = currentTime;
+        }
+    }
+
+    // 4. Actualizar cámara
+    updateFollowCamera(camera, playerShip);
+}
         // Lógica de Disparo del Jugador (si no está en updatePlayer)
         if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
             const shipDirection = new THREE.Vector3();
