@@ -81,6 +81,8 @@ let enemies = []; // Array para los enemigos activos
 const MAX_LEVEL = 10; // O el nivel máximo que quieras
 
 // *** OTRAS VARIABLES GLOBALES DE JUEGO (Input, Boost, Disparo) ***
+let keys = {}; // Para el input <--- ESTA ES LA DECLARACIÓN
+
 const input = { // Usamos 'input' como objeto para agrupar los estados
     pitchUp: false, pitchDown: false,
     yawLeft: false, yawRight: false,
@@ -181,7 +183,7 @@ async function initGame() {
 
         // Configurar listeners de UI y Input
         setupUIListeners();
-        setupInputListeners();
+        setupInputListeners(); // <-- AQUÍ SE LLAMA setupInputListeners
 
         // Iniciar loop de animación del menú
         menuAnimate();
@@ -189,8 +191,13 @@ async function initGame() {
     } catch (error) {
         console.error("Error durante la inicialización de assets:", error);
         // Mostrar un mensaje de error en la interfaz
-        document.getElementById('main-menu').innerHTML = `<h1>Error al cargar</h1><p>No se pudieron cargar los recursos del juego.</p><p style="font-size:0.8em; color:#aaa;">${error}</p>`;
-        mainMenu.classList.remove('hidden'); // Asegurar que el menú (con el error) sea visible
+        const mainMenuElement = document.getElementById('main-menu');
+        if(mainMenuElement) {
+            mainMenuElement.innerHTML = `<h1>Error al cargar</h1><p>No se pudieron cargar los recursos del juego.</p><p style="font-size:0.8em; color:#aaa;">${error}</p>`;
+            mainMenuElement.classList.remove('hidden'); // Asegurar que el menú (con el error) sea visible
+        } else {
+            console.error("Main menu element not found to display error.");
+        }
     }
 
     // Listener para redimensionar la ventana
@@ -201,25 +208,29 @@ async function initGame() {
 
 // --- Configuración de Listeners de UI ---
 function setupUIListeners() {
-    playButton.addEventListener('click', startGame);
-    controlsButton.addEventListener('click', toggleControls);
-    tryAgainButton.addEventListener('click', restartGame);
+    // Asegurarse de que los botones existen antes de añadir listeners
+    if(playButton) playButton.addEventListener('click', startGame);
+    if(controlsButton) controlsButton.addEventListener('click', toggleControls);
+    if(tryAgainButton) tryAgainButton.addEventListener('click', restartGame);
 }
 
 // --- Lógica de Inicio de una Nueva Partida ---
 function startGame() {
     console.log("Starting new game...");
+    if(gameStarted) return; // Prevenir inicio múltiple
     gameStarted = true;
 
     // Ocultar menús y mostrar canvas
-    mainMenu.classList.add('hidden');
-    gameOverMenu.classList.add('hidden');
-    document.getElementById('game-canvas').classList.remove('hidden');
-    document.getElementById('boost-cooldown-info').classList.remove('hidden'); // Mostrar UI de Boost
+    if(mainMenu) mainMenu.classList.add('hidden');
+    if(gameOverMenu) gameOverMenu.classList.add('hidden');
+    const gameCanvas = document.getElementById('game-canvas');
+    if (gameCanvas) gameCanvas.classList.remove('hidden');
+    const boostInfo = document.getElementById('boost-cooldown-info');
+    if (boostInfo) boostInfo.classList.remove('hidden'); // Mostrar UI de Boost
 
     // Deshabilitar OrbitControls del menú y asociar audio a la cámara del JUEGO
     if (menuControls) menuControls.enabled = false;
-    if (audioListener && camera) {
+    if (audioListener && camera && menuCamera) { // Asegurarse de que todos existen
         // Quitar listener de la cámara del menú si estaba ahí
         if (menuCamera.children.includes(audioListener)) {
             menuCamera.remove(audioListener);
@@ -233,21 +244,30 @@ function startGame() {
 
     /* Cleanup previous game state */
     // Limpiar enemigos, balas, explosiones existentes
-    enemies.forEach(e => scene.remove(e));
+    if (scene) { // Asegurarse de que la escena existe antes de remover
+        enemies.forEach(e => scene.remove(e));
+        bullets.forEach(b => scene.remove(b));
+        enemyBullets.forEach(b => scene.remove(b));
+        explosions.forEach(ex => scene.remove(ex));
+        // También remover asteroides viejos antes de crear nuevos
+        asteroids.forEach(a => scene.remove(a));
+    }
     enemies = [];
-    bullets.forEach(b => scene.remove(b));
     bullets = [];
-    enemyBullets.forEach(b => scene.remove(b));
     enemyBullets = [];
-    explosions.forEach(ex => scene.remove(ex));
     explosions = [];
 
-    // Limpiar asteroides existentes y crear nuevos para el juego (más cantidad)
-    asteroids.forEach(a => scene.remove(a));
-    asteroids = createAsteroidField(scene, 50);
+    // Crear nuevos asteroides para el juego (más cantidad)
+    if (scene) { // Asegurarse de que la escena existe
+        asteroids = createAsteroidField(scene, 50);
+    } else {
+        console.error("Scene not defined when trying to create asteroid field.");
+        asteroids = []; // Inicializar array vacío para evitar errores
+    }
+
 
     // Resetear jugador (posición, vida, etc.)
-    if (playerShip) {
+    if (playerShip && scene) { // Asegurarse de que existen
         playerShip.position.set(0, 0, 70); // Posición inicial segura
         playerShip.rotation.set(0, -Math.PI / 2, 0); // Orientación inicial
         playerShip.rotation.order = 'YXZ'; // Asegurar orden correcto
@@ -258,20 +278,22 @@ function startGame() {
         revertDamageAppearance(playerShip); // Quitar apariencia de daño si la tenía
         scene.add(playerShip); // Añadir a la escena si no estaba
     } else {
-        console.error("Intento de iniciar juego sin nave de jugador cargada.");
+        console.error("Intento de iniciar juego sin nave de jugador o escena definida.");
         // Manejar error - mostrar mensaje o volver al menú
         showGameOverScreen("Error al iniciar"); // Mostrar pantalla de error simple
         return;
     }
 
     // Resetear estado del Boost y Disparo
-    lastBoostTime = clock.getElapsedTime() - boostCooldownTime; // Boost listo al inicio
+    // Usar clock.getElapsedTime() sólo si clock está definido, aunque en initGame debería estar
+    const currentTime = clock ? clock.getElapsedTime() : 0;
+    lastBoostTime = currentTime - boostCooldownTime; // Boost listo al inicio
     isBoostReady = true;
     if(boostCooldownInfo) {
         boostCooldownInfo.textContent = 'Boost listo';
         boostCooldownInfo.classList.add('ready');
     }
-    lastShotTime = clock.getElapsedTime();
+    lastShotTime = currentTime;
     // playerShip.userData.canShoot = true; // Si manejas cooldown de disparo en player.js
 
 
@@ -323,8 +345,9 @@ function animate() {
     // Solicitar el próximo frame
     gameAnimationFrameId = requestAnimationFrame(animate);
 
-    const delta = clock.getDelta();
-    const currentTime = clock.getElapsedTime(); // Usar clock.getElapsedTime() para consistencia con lastBoostTime/lastShotTime
+    // Asegurarse de que clock está definido antes de usarlo
+    const delta = clock ? clock.getDelta() : 0;
+    const currentTime = clock ? clock.getElapsedTime() : performance.now(); // Usar performance.now como fallback
 
 
     // --- Actualización de Gameplay (Velocidad basada en Agujero Negro) ---
@@ -340,18 +363,30 @@ function animate() {
     // --- Lógica del Estado Arcade ---
     if (currentWave === 'starting_wave') {
         console.log(`Generating Wave for Level ${arcadeLevel}`);
-        enemiesRemaining = spawnWave(scene, arcadeLevel, enemies); // Esta función debe devolver el número de enemigos
-        currentWave = 'normal'; // Cambiar estado a oleada normal activa
-        console.log(`Wave Started. Enemies: ${enemiesRemaining}`);
-        // playSound('wave_start'); // Sonido de inicio de oleada si lo implementas
+        if (scene && enemies) { // Asegurarse de que existen
+            enemiesRemaining = spawnWave(scene, arcadeLevel, enemies); // Esta función debe devolver el número de enemigos
+            currentWave = 'normal'; // Cambiar estado a oleada normal activa
+            console.log(`Wave Started. Enemies: ${enemiesRemaining}`);
+            // playSound('wave_start'); // Sonido de inicio de oleada si lo implementas
+        } else {
+            console.error("Scene or enemies array not defined when trying to spawn wave.");
+            currentWave = 'none'; // Evitar loop infinito de starting_wave si hay error
+        }
+
     } else if (currentWave === 'normal' && enemiesRemaining <= 0) {
         // Oleada normal completada, iniciar oleada de jefe
         currentWave = 'spawning_boss'; // Estado transitorio
         console.log(`Normal wave cleared. Spawning Boss for Level ${arcadeLevel}`);
-        enemiesRemaining = spawnBoss(scene, arcadeLevel, enemies); // Esta función debe devolver el número de enemigos
-        console.log(`Boss Spawning. Total Enemies (Boss + Escorts): ${enemiesRemaining}`);
-        // playSound('boss_spawn');
-        currentWave = 'boss'; // Cambiar estado a oleada de jefe activa
+        if (scene && enemies) { // Asegurarse de que existen
+            enemiesRemaining = spawnBoss(scene, arcadeLevel, enemies); // Esta función debe devolver el número de enemigos
+            console.log(`Boss Spawning. Total Enemies (Boss + Escorts): ${enemiesRemaining}`);
+            // playSound('boss_spawn');
+            currentWave = 'boss'; // Cambiar estado a oleada de jefe activa
+        } else {
+            console.error("Scene or enemies array not defined when trying to spawn boss.");
+            currentWave = 'none';
+        }
+
     } else if (currentWave === 'boss' && enemiesRemaining <= 0) {
         // Jefe derrotado, subir de nivel
         currentWave = 'level_up_transition'; // Estado transitorio
@@ -380,14 +415,44 @@ function animate() {
     // --- Actualizaciones de Entidades (usando delta y factores de velocidad) ---
     if (playerShip && playerShip.visible) {
         // Mover y rotar nave (updatePlayer debe manejar input, velocidad de traslación y rotación)
-        updatePlayer(playerShip, input, delta, playerSpeedFactor, velocity, boostCooldownTime, currentTime, isBoostReady, boostCooldownInfo); // Pasa todos los parámetros necesarios
+        // updatePlayer ahora maneja el input, velocidad de traslación y rotación, boost y disparo
+        // Necesita el objeto input, delta, playerSpeedFactor, velocity, boostCooldownTime, currentTime, isBoostReady, boostCooldownInfo
+        // La función updatePlayer en player.js necesitará ser adaptada para recibir todos estos parámetros si quieres mover esa lógica allí
+        // Por ahora, asumiendo que updatePlayer en player.js solo hace ROTACIÓN:
+        updatePlayer(playerShip, input, delta, playerSpeedFactor); // Pasa solo input y rotación speedFactor
 
-        // Lógica de disparo del jugador (movida a updatePlayer o manejada por input listener con cooldown)
-        // La función fireBullet ahora se llamaría dentro de updatePlayer o un handler de input
-        // si decides no tener disparo continuo controlado por el loop animate
+        // Lógica de traslación (movida de updatePlayer a main.js si updatePlayer solo hace rotación)
+        // Si updatePlayer maneja traslación, esta sección no sería necesaria aquí.
+        // const invertThrust = true;
+        // const forwardDirectionFactor = invertThrust ? 1 : -1;
+        // const thrustDirectionWorld = new THREE.Vector3(0, 0, forwardDirectionFactor).applyQuaternion(playerShip.quaternion).normalize();
+
+        // if (input.thrust) {
+        //     velocity.addScaledVector(thrustDirectionWorld, thrustSpeed * delta * playerSpeedFactor);
+        // }
+        // ... lógica de boost ...
+        // velocity.multiplyScalar(damping);
+        // playerShip.position.addScaledVector(velocity, delta);
+        // ... boundary checking ...
+
+
+        // Lógica de Disparo del Jugador (si no está en updatePlayer)
+        if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
+            const shipDirection = new THREE.Vector3();
+            playerShip.getWorldDirection(shipDirection);
+            // Necesitas pasar la velocidad actual de la nave para que la bala herede el impulso
+            const bullet = fireBullet(playerShip.position, shipDirection, velocity); // Pasa velocity
+            if (bullet) {
+                bullet.userData.isPlayerBullet = true; // Marcar como bala del jugador
+                scene.add(bullet);
+                bullets.push(bullet);
+                lastShotTime = currentTime; // Resetear tiempo de disparo
+                // playSound('laser');
+            }
+        }
 
         // Actualizar cámara para seguir al jugador
-        updateFollowCamera(camera, playerShip); // Necesitas tener esta función (definida más abajo)
+        updateFollowCamera(camera, playerShip);
 
         // Actualizar el listener de audio si la cámara se mueve
         if (audioListener && camera) {
@@ -400,80 +465,99 @@ function animate() {
 
 
         // Revertir apariencia de daño del jugador (la lógica de tiempo está en checkVisualDamage)
-        if (isVisualDamaged && checkVisualDamage(currentTime)) {
+        // isVisualDamaged es una variable en player.js. Necesitamos que main.js pueda acceder a ella
+        // o que checkVisualDamage maneje la lógica completa y llame a revertDamageAppearance.
+        // Asumimos que setVisualDamage establece un estado y checkVisualDamage lo lee/resetea.
+        if (checkVisualDamage(currentTime)) { // checkVisualDamage debería retornar true cuando sea hora de revertir
             revertDamageAppearance(playerShip);
-            isVisualDamaged = false; // Reset the flag after reverting
         }
 
+    } // Fin del if (playerShip && playerShip.visible)
 
-        // --- Detección de Colisiones Jugador --- (Ahora parte de checkCollisions)
-        // Movimos la lógica de colisiones del jugador contra asteroides y enemigos a checkCollisions
-    }
 
     // Update bullets and explosions regardless of playerShip existence
     updateBullets(bullets.concat(enemyBullets), delta); // Actualizar TODAS las balas
     updateExplosions(explosions, delta);
 
     // Actualizar enemigos (movimiento, disparo, etc.)
-    updateEnemies(enemies, playerShip, delta, envSpeedFactor, enemyBullets, scene, explosions, currentTime); // Pasa playerShip y otros para lógica de enemigo
-
-    // Revertir efecto visual de daño en enemigos
-    revertEnemyHitVisuals(enemies);
+    // updateEnemies debe recibir los parámetros necesarios: array enemigos, playerShip (para apuntar/evadir), delta, speedFactor, array balas enemigas, escena, array explosiones, tiempo actual
+    updateEnemies(enemies, playerShip, delta, envSpeedFactor, enemyBullets, scene, explosions, currentTime);
 
 
-    // --- Rotación del Agujero Negro y Estrellas ---
-    if (blackHole) {
-        blackHole.rotation.y += 0.1 * delta * envSpeedFactor; // Rotación afectada por cercanía
-        if (accretionDisk) { // Asegurarse de que existe
-            accretionDisk.rotation.z -= 0.05 * delta * envSpeedFactor;
-        }
-    }
-    if (stars) stars.rotation.y += 0.01 * delta; // Rotación de estrellas
+    // Revertir efecto visual de daño en enemigos (si implementaste esa lógica en enemies.js)
+    revertEnemyHitVisuals(enemies, currentTime); // Pasa currentTime si la lógica de tiempo está en main.js o enemies.js
+
+    // Actualizar asteroides (movimiento, rotación)
+    updateAsteroids(asteroids, delta, envSpeedFactor);
+
 
     // --- Detección de Colisiones ---
-    checkCollisions(); // Llama a la función de colisiones
+    // Pasamos todos los arrays necesarios a la función de colisiones
+    checkCollisions(playerShip, asteroids, bullets, enemyBullets, enemies, scene, explosions); // Asegurarse de pasar playerShip
+
+
+    // --- Actualizar UI (Boost Cooldown) ---
+    // updateBoostUI(delta); // Ahora movida a updatePlayer si manejas boost ahí, o manejada directamente por keydown/setTimeout
+
 
     // --- Renderizar la escena ---
-    renderer.render(scene, camera); // Usar la cámara del JUEGO
+    if(renderer && scene && camera) { // Asegurarse de que existen
+        renderer.render(scene, camera); // Usar la cámara del JUEGO
+    } else {
+        console.error("Renderer, Scene, or Camera not defined for rendering.");
+    }
+
 }
 
 
-// --- Detección de Colisiones (Consolidada) ---
-function checkCollisions() {
+// --- Detección de Colisiones (Función que recibe arrays) ---
+// Recibe todos los elementos que pueden colisionar
+function checkCollisions(playerShip, asteroids, playerBullets, enemyBullets, enemies, scene, explosions) {
     if (!playerShip || !playerShip.visible) return; // No hacer nada si el jugador no está activo
 
-    const playerBoundingBox = new THREE.Box3().setFromObject(playerShip); // Bounding box del jugador (puede ser costoso, considerar optimizar)
+    // Re-crear Bounding Box del jugador aquí si updatePlayer no la actualiza
+    const playerBoundingBox = new THREE.Box3().setFromObject(playerShip); // Puede ser costoso, considerar optimizar si es un cuello de botella
 
     // 1. Balas del Jugador vs Enemigos
-    for (let i = bullets.length - 1; i >= 0; i--) {
-        const bullet = bullets[i];
-        // Asumiendo que marcas las balas del jugador con una propiedad userData
-        if (!bullet.userData || !bullet.userData.isPlayerBullet) continue;
+    // Iterar al revés para eliminar de forma segura
+    for (let i = playerBullets.length - 1; i >= 0; i--) {
+        const bullet = playerBullets[i];
+        // Asumiendo que marcas las balas del jugador con una propiedad userData { isPlayerBullet: true }
+        // if (!bullet.userData || !bullet.userData.isPlayerBullet) continue; // Ya filtraremos por el array
+
+        if (!bullet || !bullet.parent) { // Verificar que la bala todavía existe y está en la escena
+            playerBullets.splice(i, 1); // Si no existe, removerla del array
+            continue;
+        }
 
         const bulletBoundingBox = new THREE.Box3().setFromObject(bullet);
 
         for (let j = enemies.length - 1; j >= 0; j--) {
             const enemy = enemies[j];
-            // Asegurarse de que el enemigo tiene bounding box precalculada
-            if (!enemy.userData || !enemy.userData.boundingBox) continue;
+            // Asegurarse de que el enemigo tiene bounding box precalculada y está visible/activo
+            if (!enemy || !enemy.parent || !enemy.userData || !enemy.userData.boundingBox) continue;
             const enemyBoundingBox = enemy.userData.boundingBox.clone().applyMatrix4(enemy.matrixWorld);
+
 
             if (bulletBoundingBox.intersectsBox(enemyBoundingBox)) {
                 console.log("Player bullet hit enemy!");
-                createExplosion(scene, bullet.position.clone());
+                // Crear explosión pequeña en el punto de impacto
+                explosions.push(createExplosion(scene, bullet.position.clone())); // Añadir a la lista global
                 // playSound('hit'); // Sonido de impacto
 
                 // Aplicar daño y manejar destrucción del enemigo
-                const enemyDestroyed = handleEnemyHit(enemy, 25, enemies, scene, explosions); // Pasar 'explosions' para crear fragmentos si es necesario
+                // handleEnemyHit debe manejar la remoción del enemigo de la escena y el array 'enemies'
+                const enemyDestroyed = handleEnemyHit(enemy, 25, enemies, scene, explosions); // Asumir 25 de daño por bala
+
                 if (enemyDestroyed) {
-                    enemiesRemaining--; // Reducir contador si fue destruido
+                    // enemiesRemaining--; // Esto debe actualizarse en handleEnemyHit si se destruye un enemigo que cuenta para la oleada
                     console.log(`Enemy destroyed. Remaining: ${enemiesRemaining}`);
                     // ¿Soltar power-up? (Lógica futura aquí)
                 }
 
-                // Eliminar la bala
+                // Eliminar la bala del array de balas del jugador y de la escena
                 scene.remove(bullet);
-                bullets.splice(i, 1);
+                playerBullets.splice(i, 1); // Eliminar de playerBullets
                 break; // Salir del loop de enemigos, la bala ya impactó
             }
         }
@@ -482,24 +566,32 @@ function checkCollisions() {
     // 2. Balas Enemigas vs Jugador
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
         const bullet = enemyBullets[i];
-        if (!bullet.userData || !bullet.userData.isEnemyBullet) continue;
+        // Asumiendo que marcas las balas enemigas { isEnemyBullet: true }
+        // if (!bullet.userData || !bullet.userData.isEnemyBullet) continue; // Ya filtraremos por el array
+
+        if (!bullet || !bullet.parent) { // Verificar que la bala todavía existe y está en la escena
+            enemyBullets.splice(i, 1); // Si no existe, removerla del array
+            continue;
+        }
+
 
         const bulletBoundingBox = new THREE.Box3().setFromObject(bullet);
 
         if (playerBoundingBox.intersectsBox(bulletBoundingBox)) {
             console.log("Player hit by enemy bullet!");
-            createExplosion(scene, bullet.position.clone());
+            explosions.push(createExplosion(scene, bullet.position.clone())); // Añadir a la lista global
             scene.remove(bullet);
-            enemyBullets.splice(i, 1);
+            enemyBullets.splice(i, 1); // Eliminar de enemyBullets
             // playSound('player_hit');
 
             // Aplicar daño al jugador
             applyDamage(playerShip, 1); // Daño = 1 golpe
+            // isVisualDamaged = true; // Establecer flag en main.js o player.js
             setVisualDamage(clock.getElapsedTime()); // Activar efecto visual de daño usando el tiempo actual
 
             if (isDestroyed(playerShip)) {
                 handlePlayerDeath(); // Manejar muerte del jugador
-                break; // Salir del loop, el jugador murió
+                // No need to break here, the death handler will stop the game loop
             }
         }
     }
@@ -508,21 +600,26 @@ function checkCollisions() {
     // 3. Jugador vs Asteroides
     for (let i = asteroids.length - 1; i >= 0; i--) {
         const asteroid = asteroids[i];
+        if (!asteroid || !asteroid.parent) { // Verificar que el asteroide todavía existe y está en la escena
+            asteroids.splice(i, 1); // Si no existe, removerlo del array
+            continue;
+        }
+
         // Usar la bounding box del asteroide (asegurarse de que existe o usar una esfera de colisión aproximada)
         const asteroidBoundingBox = new THREE.Box3().setFromObject(asteroid); // O usar radio: asteroid.userData.radius
 
         // Una simple comprobación de distancia al centro puede ser suficiente y más rápida si el asteroide es esférico
-        // const distance = playerShip.position.distanceTo(asteroid.position);
+        // const distance = playerShip.position.distanceTo(asteroid.position); // Necesitarías pasar la cámara aquí
         // const collisionDistance = getScaledShipSize().length() / 2 + asteroid.userData.radius; // Suma de radios aproximada
         // if (distance < collisionDistance) { ... colisión ... }
 
         if (playerBoundingBox.intersectsBox(asteroidBoundingBox)) {
             console.log("Player hit asteroid!");
-            createExplosion(scene, asteroid.position.clone());
+            explosions.push(createExplosion(scene, asteroid.position.clone())); // Añadir a la lista global
             // playSound('collision'); // Sonido de colisión
 
-            // Manejar colisión del asteroide (destruir, romper) - Pasar null como bala
-            handleAsteroidCollision(scene, asteroids, asteroid, bullets, explosions, null); // bullet es null aquí
+            // Manejar colisión del asteroide (destruir, romper) - Pasar null como bala porque no fue una bala
+            handleAsteroidCollision(scene, asteroids, asteroid, playerBullets, explosions, null); // Pasar playerBullets o solo [] si handleAsteroidCollision necesita un array de balas
 
 
             // Aplicar daño al jugador
@@ -531,7 +628,7 @@ function checkCollisions() {
 
             if (isDestroyed(playerShip)) {
                 handlePlayerDeath();
-                break; // Salir del loop, el jugador murió
+                // No need to break here
             }
         }
     }
@@ -539,30 +636,32 @@ function checkCollisions() {
     // 4. Jugador vs Enemigos (Colisión física)
      for (let i = enemies.length - 1; i >= 0; i--) {
         const enemy = enemies[i];
-        // Asegurarse de que el enemigo tiene bounding box precalculada
-        if (!enemy.userData || !enemy.userData.boundingBox) continue;
+        // Asegurarse de que el enemigo tiene bounding box precalculada y está visible/activo
+        if (!enemy || !enemy.parent || !enemy.userData || !enemy.userData.boundingBox) continue;
         const enemyBoundingBox = enemy.userData.boundingBox.clone().applyMatrix4(enemy.matrixWorld);
 
 
         if (playerBoundingBox.intersectsBox(enemyBoundingBox)) {
             console.log("Player collided with enemy!");
-            createExplosion(scene, playerShip.position.clone());
-            createExplosion(scene, enemy.position.clone()); // Explosión también para el enemigo
+            explosions.push(createExplosion(scene, playerShip.position.clone())); // Añadir a la lista global
+            explosions.push(createExplosion(scene, enemy.position.clone())); // Explosión también para el enemigo
             // playSound('collision_heavy'); // Sonido de colisión fuerte
 
             // Aplicar daño significativo a ambos
             applyDamage(playerShip, 2); // Más daño al jugador
             setVisualDamage(clock.getElapsedTime());
+            // handleEnemyHit debe manejar la remoción del enemigo
             const enemyDestroyed = handleEnemyHit(enemy, 100, enemies, scene, explosions); // Mucho daño al enemigo
+
             if (enemyDestroyed) {
-                enemiesRemaining--;
+                // enemiesRemaining--; // Esto debe actualizarse en handleEnemyHit
                 console.log(`Enemy destroyed on collision. Remaining: ${enemiesRemaining}`);
             }
 
 
             if (isDestroyed(playerShip)) {
                 handlePlayerDeath();
-                break; // Salir del loop, el jugador murió
+                // No need to break here
             }
             // Si el enemigo no fue destruido, podrías añadir lógica de rebote o impulso
             // if (!enemyDestroyed && playerShip.userData.velocity && enemy.userData.velocity) { ... }
@@ -570,24 +669,36 @@ function checkCollisions() {
     }
 
      // 5. Balas vs Asteroides (Si quieres que las balas destruyan asteroides)
-      // Ya se maneja en el loop de balas (se interseca con asteroides)
-     // La lógica está dentro del primer loop 'Balas del Jugador vs Enemigos', pero debería ser un loop separado
-     // o unificado para todas las balas vs asteroides.
-     // Vamos a mover esa lógica a un loop separado para mayor claridad.
-     checkBulletAsteroidCollisions(bullets.concat(enemyBullets), asteroids, scene, bullets, enemyBullets, explosions);
-
+      // Esta lógica está en una función separada ahora para mayor claridad
+     // checkBulletAsteroidCollisions(bullets.concat(enemyBullets), asteroids, scene, bullets, enemyBullets, explosions); // Ya se llama desde animate
 }
 
 // --- Función separada para Colisiones de Balas vs Asteroides ---
+// Recibe todos los elementos necesarios para manejar la colisión
 function checkBulletAsteroidCollisions(allBullets, asteroids, scene, playerBulletsArray, enemyBulletsArray, explosions) {
+    // Iterar al revés para eliminar balas de forma segura
     for (let i = allBullets.length - 1; i >= 0; i--) {
         const bullet = allBullets[i];
-        if (!bullet || !bullet.parent) continue; // Asegurarse que la bala existe y está en la escena
+
+        if (!bullet || !bullet.parent) { // Verificar que la bala existe y todavía está en la escena
+            // Si la bala ya no está en la escena, removerla del array correspondiente si es necesario
+            // Esto es un poco complejo si allBullets es una concatenación. Es mejor manejar la remoción
+            // del array dentro de handleAsteroidCollision.
+            continue; // Saltar esta bala si no es válida
+        }
 
         const bulletBoundingBox = new THREE.Box3().setFromObject(bullet);
 
+        // Iterar al revés para eliminar asteroides de forma segura
         for (let j = asteroids.length - 1; j >= 0; j--) {
             const asteroid = asteroids[j];
+
+            if (!asteroid || !asteroid.parent) { // Verificar que el asteroide existe y todavía está en la escena
+                // Si el asteroide ya no está en la escena (ej: destruido por otra cosa), removerlo del array
+                asteroids.splice(j, 1);
+                continue;
+            }
+
             const asteroidBoundingBox = new THREE.Box3().setFromObject(asteroid); // O usar radio
 
             if (bulletBoundingBox.intersectsBox(asteroidBoundingBox)) {
@@ -595,10 +706,11 @@ function checkBulletAsteroidCollisions(allBullets, asteroids, scene, playerBulle
                 // Determinar a qué array pertenece la bala para eliminarla correctamente
                 const sourceBulletArray = bullet.userData.isPlayerBullet ? playerBulletsArray : enemyBulletsArray;
 
-                // Manejar colisión del asteroide (destruir, romper)
+                // Manejar colisión del asteroide (destruir, romper) - handleAsteroidCollision debe encargarse de remover el asteroide y la bala
                 handleAsteroidCollision(scene, asteroids, asteroid, sourceBulletArray, explosions, bullet);
 
-                // La bala ya se eliminó dentro de handleAsteroidCollision
+                // Si handleAsteroidCollision removió la bala, need to adjust loop index or break
+                // bullet is removed inside handleAsteroidCollision, so we break inner loop
                 break; // Salir del loop de asteroides para esta bala
             }
         }
@@ -612,11 +724,14 @@ function handlePlayerDeath() {
     gameStarted = false; // Detener el juego
     // playSound('game_over'); // O un sonido de explosión grande
 
-    if (playerShip) { // Asegurarse de que la nave existe antes de intentar explosionar/remover
-        createExplosion(scene, playerShip.position.clone()); // Explosión grande
+    if (playerShip && scene) { // Asegurarse de que la nave y la escena existen
+        explosions.push(createExplosion(scene, playerShip.position.clone())); // Explosión grande
         scene.remove(playerShip);
-        playerShip = null; // Importante: establece a null después de remover
+        playerShip = null; // Importante: establece a null después de remover de la escena
+    } else {
+        console.error("PlayerShip or Scene not defined when handling player death.");
     }
+
 
     // Mostrar pantalla de Game Over
     showGameOverScreen("GAME OVER");
@@ -634,7 +749,7 @@ function showGameOverScreen(message = "GAME OVER", isVictory = false) {
     }
 
     // Configurar y mostrar el menú apropiado
-    const gameOverTitle = gameOverMenu.querySelector('h1');
+    const gameOverTitle = gameOverMenu ? gameOverMenu.querySelector('h1') : null;
     if (gameOverTitle) gameOverTitle.textContent = message;
     if (tryAgainButton) tryAgainButton.textContent = isVictory ? "Volver al Menú" : "Intentar de Nuevo";
 
@@ -683,11 +798,12 @@ function updateFollowCamera(camera, target) {
 
 // --- Manejo de Input (Teclado) ---
 function setupInputListeners() {
+    console.log("Setting up input listeners..."); // Log para depurar
     // Resetear estado de keys al configurar listeners (útil al reiniciar)
-    keys = {};
+    keys = {}; // <-- Se usa keys aquí
 
     document.addEventListener('keydown', (event) => {
-        keys[event.key.toLowerCase()] = true;
+        keys[event.key.toLowerCase()] = true; // <-- Y aquí
 
         // Lógica para acciones que solo ocurren una vez al presionar la tecla
         if (event.key.toLowerCase() === 'm') {
@@ -699,7 +815,8 @@ function setupInputListeners() {
         if (event.key.toLowerCase() === 'n' && isBoostReady) {
             isBoosting = true;
             isBoostReady = false; // Desactiva hasta que termine el cooldown
-            lastBoostTime = clock.getElapsedTime(); // Registrar tiempo de uso
+            // Usar clock.getElapsedTime() sólo si clock está definido, aunque en animate/initGame debería estar
+            lastBoostTime = clock ? clock.getElapsedTime() : performance.now(); // Registrar tiempo de uso
 
             // Aplicar impulso inicial del boost (esto podría ir en updatePlayer si quieres aplicarlo gradualmente)
             // const boostForce = 250;
@@ -721,18 +838,21 @@ function setupInputListeners() {
     });
 
     document.addEventListener('keyup', (event) => {
-        keys[event.key.toLowerCase()] = false;
+        keys[event.key.toLowerCase()] = false; // <-- Y aquí
         // constantThrust (M) se maneja en keydown para ser un toggle
         // Boost (N) isBoosting se desactiva después de BOOST_DURATION
         // Shoot (Espacio) se maneja en el loop animate o en un handler de keydown con cooldown
     });
+    console.log("Input listeners setup complete."); // Log de confirmación
 }
 
 // --- Actualizar UI del Boost (basado en tiempo transcurrido) ---
 function updateBoostUI(delta) {
     // Esta función se llama en el loop animate
     if (!isBoostReady) {
-        const elapsed = clock.getElapsedTime() - lastBoostTime;
+        // Usar clock.getElapsedTime() sólo si clock está definido
+        const currentTime = clock ? clock.getElapsedTime() : performance.now();
+        const elapsed = currentTime - lastBoostTime;
         const remaining = boostCooldownTime - elapsed;
 
         if (remaining <= 0) {
@@ -793,7 +913,8 @@ function menuAnimate() {
     }
 
     menuAnimationFrameId = requestAnimationFrame(menuAnimate);
-    const delta = clock.getDelta();
+    // Asegurarse de que clock está definido
+    const delta = clock ? clock.getDelta() : 0;
 
     // Rotar agujero negro y asteroides en el fondo del menú/game over
     if (blackHole) { // Asegurarse de que existen
@@ -812,7 +933,11 @@ function menuAnimate() {
     if(menuControls) menuControls.update();
 
     // Renderizar con la cámara del menú
-    renderer.render(scene, menuCamera);
+    if(renderer && scene && menuCamera) { // Asegurarse de que existen
+        renderer.render(scene, menuCamera);
+    } else {
+        console.error("Renderer, Scene, or MenuCamera not defined for menu rendering.");
+    }
 }
 
 
