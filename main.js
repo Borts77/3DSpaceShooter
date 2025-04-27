@@ -640,39 +640,39 @@ function checkCollisions(playerShip, asteroids, playerBullets, enemyBullets, ene
     }
 
     // 4. Jugador vs Enemigos (Colisión física)
-     for (let i = enemies.length - 1; i >= 0; i--) {
-        const enemy = enemies[i];
+    //  for (let i = enemies.length - 1; i >= 0; i--) {
+     //    const enemy = enemies[i];
         // Asegurarse de que el enemigo tiene bounding box precalculada y está visible/activo
-        if (!enemy || !enemy.parent || !enemy.userData || !enemy.userData.boundingBox) continue;
-        const enemyBoundingBox = enemy.userData.boundingBox.clone().applyMatrix4(enemy.matrixWorld);
+    //     if (!enemy || !enemy.parent || !enemy.userData || !enemy.userData.boundingBox) continue;
+     //    const enemyBoundingBox = enemy.userData.boundingBox.clone().applyMatrix4(enemy.matrixWorld);
 
 
-        if (playerBoundingBox.intersectsBox(enemyBoundingBox)) {
-            console.log("Player collided with enemy!");
-            explosions.push(createExplosion(scene, playerShip.position.clone())); // Añadir a la lista global
-            explosions.push(createExplosion(scene, enemy.position.clone())); // Explosión también para el enemigo
+     //    if (playerBoundingBox.intersectsBox(enemyBoundingBox)) {
+     //        console.log("Player collided with enemy!");
+          //   explosions.push(createExplosion(scene, playerShip.position.clone())); // Añadir a la lista global
+      //       explosions.push(createExplosion(scene, enemy.position.clone())); // Explosión también para el enemigo
             // playSound('collision_heavy'); // Sonido de colisión fuerte
 
             // Aplicar daño significativo a ambos
-            applyDamage(playerShip, 2); // Más daño al jugador
-            setVisualDamage(clock.getElapsedTime());
+       //      applyDamage(playerShip, 2); // Más daño al jugador
+      //       setVisualDamage(clock.getElapsedTime());
             // handleEnemyHit debe manejar la remoción del enemigo
-            const enemyDestroyed = handleEnemyHit(enemy, 100, enemies, scene, explosions); // Mucho daño al enemigo
+       //      const enemyDestroyed = handleEnemyHit(enemy, 100, enemies, scene, explosions); // Mucho daño al enemigo
 
-            if (enemyDestroyed) {
-                // enemiesRemaining--; // Esto debe actualizarse en handleEnemyHit
-                console.log(`Enemy destroyed on collision. Remaining: ${enemiesRemaining}`);
-            }
+      //       if (enemyDestroyed) {
+      //           // enemiesRemaining--; // Esto debe actualizarse en handleEnemyHit
+          //       console.log(`Enemy destroyed on collision. Remaining: ${enemiesRemaining}`);
+      //       }
 
 
-            if (isDestroyed(playerShip)) {
-                handlePlayerDeath();
+          //   if (isDestroyed(playerShip)) {
+          //       handlePlayerDeath();
                 // No need to break here
-            }
+       //      }
             // Si el enemigo no fue destruido, podrías añadir lógica de rebote o impulso
             // if (!enemyDestroyed && playerShip.userData.velocity && enemy.userData.velocity) { ... }
-        }
-    }
+       //  }
+   //  }
 
      // 5. Balas vs Asteroides (Si quieres que las balas destruyan asteroides)
       // Esta lógica está en una función separada ahora para mayor claridad
