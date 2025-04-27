@@ -793,7 +793,13 @@ function updateFollowCamera(camera, target) {
     const desiredPosition = target.localToWorld(offset.clone()); // Calcular posición deseada
 
     // Suavizar movimiento de la cámara (Lerp)
-    camera.position.lerp(desiredPosition, 0.08); // Ajusta el valor 0.08 para más/menos suavidad
+    // camera.position.lerp(desiredPosition, 0.08); // Ajusta el valor 0.08 para más/menos suavidad viejo
+    const minDistance = 10; // Distancia mínima permitida
+if (camera.position.distanceTo(target.position) < minDistance) {
+    camera.position.copy(desiredPosition);
+} else {
+    camera.position.lerp(desiredPosition, 0.08);
+}
 
     // Hacer que la cámara mire un punto ligeramente delante de la nave
     const lookAtOffset = new THREE.Vector3(0, 3, 50); // Punto delante de la nave (ajusta)
