@@ -499,34 +499,24 @@ if (checkVisualDamage(currentTime)) {
     updateBullets(bullets.concat(enemyBullets), delta); // Actualizar TODAS las balas
     updateExplosions(explosions, delta);
 
-    // Actualizar enemigos (movimiento, disparo, etc.)
-    // updateEnemies debe recibir los parámetros necesarios: array enemigos, playerShip (para apuntar/evadir), delta, speedFactor, array balas enemigas, escena, array explosiones, tiempo actual
-    updateEnemies(enemies, playerShip, delta, envSpeedFactor, enemyBullets, scene, explosions, currentTime);
+        // Actualizar enemigos (movimiento, disparo, etc.)
+    updateEnemies(enemies, playerShip, delta, envSpeedFactor, enemyBullets, scene, explosions, currentTime);
 
+    // Revertir efecto visual de daño en enemigos
+    revertEnemyHitVisuals(enemies, currentTime);
 
-    // Revertir efecto visual de daño en enemigos (si implementaste esa lógica en enemies.js)
-    revertEnemyHitVisuals(enemies, currentTime); // Pasa currentTime si la lógica de tiempo está en main.js o enemies.js
+    // Actualizar asteroides
+    updateAsteroids(asteroids, delta, envSpeedFactor);
 
-    // Actualizar asteroides (movimiento, rotación)
-    updateAsteroids(asteroids, delta, envSpeedFactor);
+    // --- Detección de Colisiones ---
+    checkCollisions(playerShip, asteroids, bullets, enemyBullets, enemies, scene, explosions);
 
-
-    // --- Detección de Colisiones ---
-    // Pasamos todos los arrays necesarios a la función de colisiones
-    checkCollisions(playerShip, asteroids, bullets, enemyBullets, enemies, scene, explosions); // Asegurarse de pasar playerShip
-
-
-    // --- Actualizar UI (Boost Cooldown) ---
-    // updateBoostUI(delta); // Ahora movida a updatePlayer si manejas boost ahí, o manejada directamente por keydown/setTimeout
-
-
-    // --- Renderizar la escena ---
-    if(renderer && scene && camera) { // Asegurarse de que existen
-        renderer.render(scene, camera); // Usar la cámara del JUEGO
-    } else {
-        console.error("Renderer, Scene, or Camera not defined for rendering.");
-    }
-
+    // --- Renderizar la escena ---
+    if (renderer && scene && camera) {
+        renderer.render(scene, camera);
+    } else {
+        console.error("Renderer, Scene, or Camera not defined for rendering.");
+    }
 }
 
 
