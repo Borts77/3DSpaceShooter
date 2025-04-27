@@ -33,7 +33,7 @@ import {
 // ... (resto de importaciones y código inicial)
 
 /* ---------- Variables Globales del Juego ---------- */
-let scene, camera, menuCamera, menuControls, renderer;
+let scene, camera, menuCamera, menuControls,
 let clock = new THREE.Clock();
 let playerShip = null; // Asegúrate de que playerShip sea accesible globalmente o pasado
 let asteroids = [];
