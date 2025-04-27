@@ -418,8 +418,8 @@ function animate() {
     }
 
 
-    // --- Actualizaciones de Entidades (usando delta y factores de velocidad) ---
-   if (playerShip && playerShip.visible) {
+   // --- Actualizaciones de Entidades (usando delta y factores de velocidad) ---
+if (playerShip && playerShip.visible) {
     // 1. Rotar nave
     updatePlayer(playerShip, delta, playerSpeedFactor, input);
 
@@ -454,47 +454,20 @@ function animate() {
         }
     }
 
-    // 4. Actualizar cámara
+    // 4. Actualizar cámara para seguir al jugador
     updateFollowCamera(camera, playerShip);
-}
-        // Lógica de Disparo del Jugador (si no está en updatePlayer)
-        if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
-            const shipDirection = new THREE.Vector3();
-            playerShip.getWorldDirection(shipDirection);
-            // Necesitas pasar la velocidad actual de la nave para que la bala herede el impulso
-            const bullet = fireBullet(playerShip.position, shipDirection, velocity); // Pasa velocity
-            if (bullet) {
-                bullet.userData.isPlayerBullet = true; // Marcar como bala del jugador
-                scene.add(bullet);
-                bullets.push(bullet);
-                lastShotTime = currentTime; // Resetear tiempo de disparo
-                // playSound('laser');
-            }
-        }
 
-        // Actualizar cámara para seguir al jugador
-        updateFollowCamera(camera, playerShip);
+    // 5. Actualizar el listener de audio si la cámara se mueve
+    if (audioListener && camera) {
+        audioListener.position.copy(camera.position);
+    }
 
-        // Actualizar el listener de audio si la cámara se mueve
-        if (audioListener && camera) {
-            audioListener.position.copy(camera.position);
-            // Si usas orientación del listener:
-            // const q = new THREE.Quaternion();
-            // camera.getWorldQuaternion(q);
-            // audioListener.setOrientationFromQuaternion(q);
-        }
+    // 6. Revertir apariencia de daño si toca
+    if (checkVisualDamage(currentTime)) {
+        revertDamageAppearance(playerShip);
+    }
 
-
-        // Revertir apariencia de daño del jugador (la lógica de tiempo está en checkVisualDamage)
-        // isVisualDamaged es una variable en player.js. Necesitamos que main.js pueda acceder a ella
-        // o que checkVisualDamage maneje la lógica completa y llame a revertDamageAppearance.
-        // Asumimos que setVisualDamage establece un estado y checkVisualDamage lo lee/resetea.
-        if (checkVisualDamage(currentTime)) { // checkVisualDamage debería retornar true cuando sea hora de revertir
-            revertDamageAppearance(playerShip);
-        }
-
-    } // Fin del if (playerShip && playerShip.visible)
-
+} // <-- AQUÍ termina el if (playerShip && playerShip.visible)
 
     // Update bullets and explosions regardless of playerShip existence
     updateBullets(bullets.concat(enemyBullets), delta); // Actualizar TODAS las balas
