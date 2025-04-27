@@ -444,52 +444,54 @@ function animate() {
 
    // --- Actualizaciones de Entidades (usando delta y factores de velocidad) ---
 if (playerShip && playerShip.visible) {
-    // 1. Rotar nave
-    updatePlayer(playerShip, delta, playerSpeedFactor, input);
+    // --- Mover y Rotar la nave ---
+updatePlayer(playerShip, delta, playerSpeedFactor, input);
 
-    // 2. Mover nave
-    const invertThrust = true;
-    const forwardDirectionFactor = invertThrust ? 1 : -1;
-    const thrustDirectionWorld = new THREE.Vector3(0, 0, forwardDirectionFactor).applyQuaternion(playerShip.quaternion).normalize();
+// --- Aplicar traslación ---
+const invertThrust = true;
+const forwardDirectionFactor = invertThrust ? 1 : -1;
+const thrustDirectionWorld = new THREE.Vector3(0, 0, forwardDirectionFactor)
+    .applyQuaternion(playerShip.quaternion)
+    .normalize();
 
-    if (input.thrust) {
-        velocity.addScaledVector(thrustDirectionWorld, thrustSpeed * delta * playerSpeedFactor);
+if (input.thrust) {
+    velocity.addScaledVector(thrustDirectionWorld, thrustSpeed * delta * playerSpeedFactor);
+}
+
+if (input.boost && isBoostReady) {
+    velocity.addScaledVector(thrustDirectionWorld, boostSpeed * playerSpeedFactor);
+    isBoostReady = false;
+    lastBoostTime = currentTime;
+}
+
+velocity.multiplyScalar(damping);
+playerShip.position.addScaledVector(velocity, delta);
+
+// --- Disparo continuo ---
+if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
+    const shipDirection = new THREE.Vector3();
+    playerShip.getWorldDirection(shipDirection);
+    const bullet = fireBullet(playerShip.position, shipDirection, velocity);
+    if (bullet) {
+        bullet.userData.isPlayerBullet = true;
+        scene.add(bullet);
+        bullets.push(bullet);
+        lastShotTime = currentTime;
     }
+}
 
-    if (input.boost && isBoostReady) {
-        velocity.addScaledVector(thrustDirectionWorld, boostSpeed * playerSpeedFactor);
-        isBoostReady = false;
-        lastBoostTime = currentTime;
-    }
+// --- Actualizar Cámara ---
+updateFollowCamera(camera, playerShip);
 
-    velocity.multiplyScalar(damping);
-    playerShip.position.addScaledVector(velocity, delta);
+// --- Listener de Audio (para que el sonido siga la cámara) ---
+if (audioListener && camera) {
+    audioListener.position.copy(camera.position);
+}
 
-    // 3. Disparar
-    if (input.shoot && (currentTime - lastShotTime >= fireRate) && scene && bullets && playerShip) {
-        const shipDirection = new THREE.Vector3();
-        playerShip.getWorldDirection(shipDirection);
-        const bullet = fireBullet(playerShip.position, shipDirection, velocity);
-        if (bullet) {
-            bullet.userData.isPlayerBullet = true;
-            scene.add(bullet);
-            bullets.push(bullet);
-            lastShotTime = currentTime;
-        }
-    }
-
-    // 4. Actualizar cámara para seguir al jugador
-    updateFollowCamera(camera, playerShip);
-
-    // 5. Actualizar el listener de audio si la cámara se mueve
-    if (audioListener && camera) {
-        audioListener.position.copy(camera.position);
-    }
-
-    // 6. Revertir apariencia de daño si toca
-    if (checkVisualDamage(currentTime)) {
-        revertDamageAppearance(playerShip);
-    }
+// --- Verificar daño visual ---
+if (checkVisualDamage(currentTime)) {
+    revertDamageAppearance(playerShip);
+}
 
 } // <-- AQUÍ termina el if (playerShip && playerShip.visible)
 
