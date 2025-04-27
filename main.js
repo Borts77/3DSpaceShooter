@@ -135,25 +135,25 @@ async function initGame() {
     console.log("Initializing game...");
 
     // Crear el mundo (escena, agujero negro, estrellas, disco)
-    const worldData = createWorld(); // createWorld ahora devuelve un objeto
+    const worldData = createWorld();
     scene = worldData.scene;
     blackHole = worldData.blackHole;
     stars = worldData.stars;
-    accretionDisk = worldData.accretionDisk; // Asignar accretionDisk
+    accretionDisk = worldData.accretionDisk;
 
     // Configurar cámara del menú
-    const menuCamData = createCamera(canvas); // Reutiliza la función createCamera de camera.js
+    const menuCamData = createCamera(canvas);
     menuCamera = menuCamData.camera;
     menuControls = menuCamData.controls;
-    menuCamera.position.set(0, 50, 120); // Ajustar posición para ver la escena del menú
-    menuControls.target.set(0, 0, 0); // Apuntar al agujero negro
+    menuCamera.position.set(0, 50, 120);
+    menuControls.target.set(0, 0, 0);
 
     // Configurar cámara del juego (inicialmente separada de la nave)
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, fieldSize * 2); // La cámara del juego, distinta a la del menú
-    camera.position.set(0, 15, 100); // Posición inicial de la cámara del juego
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, fieldSize * 2);
+    camera.position.set(0, 15, 100);
 
     // Inicializar audio y asociarlo a una cámara (inicialmente la del menú)
-    audioListener = initAudio(menuCamera); // initAudio devuelve el listener
+    audioListener = initAudio(menuCamera);
 
     // Carga asíncrona de assets (nave del jugador y enemigos)
     try {
@@ -161,6 +161,10 @@ async function initGame() {
             loadPlayerShip(), // Cargar nave del jugador
             loadEnemyAssets() // Cargar modelos y datos de enemigos
         ]);
+
+        // *** Mover estas dos líneas AQUÍ, DESPUÉS DEL AWAIT ***
+        setupUIListeners(); // <-- Ahora se llama DESPUÉS de que playerShip se asigna
+        setupInputListeners(); // <-- Y input listeners también
 
         if (playerShip) {
             console.log("Nave del jugador cargada.");
@@ -173,17 +177,18 @@ async function initGame() {
         } else {
             console.error("¡Fallo al cargar la nave del jugador!");
             // Mostrar un mensaje de error al usuario
-            document.getElementById('model-info').textContent = "Error: No se pudo cargar la nave.";
-            document.getElementById('model-info').classList.remove('hidden');
+            const mainMenuElement = document.getElementById('main-menu');
+            if(mainMenuElement) {
+                mainMenuElement.innerHTML = `<h1>Error al cargar</h1><p>No se pudieron cargar los recursos del juego.</p><p style="font-size:0.8em; color:#aaa;">${error}</p>`;
+                mainMenuElement.classList.remove('hidden'); // Asegurar que el menú (con el error) sea visible
+            } else {
+                console.error("Main menu element not found to display error.");
+            }
             return; // Detener inicialización si falla
         }
 
         // Inicializar asteroides para el fondo del menú (menos cantidad)
         asteroids = createAsteroidField(scene, 20);
-
-        // Configurar listeners de UI y Input
-        setupUIListeners();
-        setupInputListeners(); // <-- AQUÍ SE LLAMA setupInputListeners
 
         // Iniciar loop de animación del menú
         menuAnimate();
@@ -205,7 +210,6 @@ async function initGame() {
 
     console.log("Game initialization complete.");
 }
-
 // --- Configuración de Listeners de UI ---
 function setupUIListeners() {
     // Asegurarse de que los botones existen antes de añadir listeners
