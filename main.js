@@ -108,6 +108,7 @@ let boostSpeed = 1000; // Velocidad del boost
 let boostCooldownTime = 5; // Tiempo de recarga del boost en segundos (Renombrado para no confundir con variable de countdown)
 let lastBoostTime = -boostCooldownTime; // Inicializado para que el boost esté listo al inicio
 let isBoostReady = true;
+let isBoosting = false; // <-- ¡ASEGÚRATE DE QUE ESTA LÍNEA NO ESTÉ COMENTADA!
 const boostCooldownInfo = document.getElementById('boost-cooldown-info'); // Referencia al elemento UI
 
 let fireRate = 0.2; // Cadencia de disparo en segundos
