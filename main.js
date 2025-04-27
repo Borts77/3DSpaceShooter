@@ -1,4 +1,10 @@
 // main.js
+// main.js
+import * as THREE from 'three'; // <-- AQUÍ ESTÁ LA LÍNEA 2
+import { createCamera, updateCameraControls, setCameraTarget } from './camera.js'; // Mantener createCamera para el menú
+// Import fieldSize from world.js
+// Asegúrate que fieldSize está exportado
+// ... y siguen las otras importaciones
 // ... (otras importaciones)
 import { createWorld, fieldSize } from './world.js'; // Asegúrate que fieldSize está exportado
 import { updateGameplay } from './gameplay.js';
