@@ -809,10 +809,10 @@ function setupInputListeners() {
         keys[event.key.toLowerCase()] = true; // <-- Y aquí
 
         // Lógica para acciones que solo ocurren una vez al presionar la tecla
-        if (event.key.toLowerCase() === 'm') {
-            constantThrust = !constantThrust; // Toggle thrust
-            console.log("Constant Thrust:", constantThrust ? "ON" : "OFF");
-        }
+        // if (event.key.toLowerCase() === 'm') {
+         //   constantThrust = !constantThrust; // Toggle thrust
+          //  console.log("Constant Thrust:", constantThrust ? "ON" : "OFF");
+       // }
 
         // Lógica para el Boost (activar al presionar si está listo)
         if (event.key.toLowerCase() === 'n' && isBoostReady) {
@@ -836,7 +836,7 @@ function setupInputListeners() {
             setTimeout(() => {
                 isBoosting = false;
                 console.log("Boost Effect Ended");
-            }, BOOST_DURATION * 1000); // BOOST_DURATION está en segundos, setTimeout espera ms
+            },  3000); // BOOST_DURATION está en segundos, setTimeout espera ms
         }
     });
 
