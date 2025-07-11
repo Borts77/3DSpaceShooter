@@ -258,14 +258,26 @@ function animate() {
     if (playerShip) {
 
         // CONTROL DE MOUSE Y MOVIMIENTO FLUIDO
-const rotationSpeed = 2.5;
-const pitch = -mouse.y * 0.5;
-const yaw = -mouse.x * 0.5;
+// CONTROL SUAVE DE NAVE ESTILO ARCADE
+const pitchAmount = -mouse.y * 1.5; // arriba/abajo
+const yawAmount = -mouse.x * 1.5;   // izquierda/derecha
 
-const targetRotation = new THREE.Euler(pitch, yaw, 0, 'YXZ');
-const targetQuaternion = new THREE.Quaternion().setFromEuler(targetRotation);
+// velocidad de rotación
+const turnSpeed = 1.5;
 
-playerShip.quaternion.slerp(targetQuaternion, delta * rotationSpeed);
+// Crea un vector de rotación local (pitch, yaw, roll)
+const rotationVector = new THREE.Euler(
+  pitchAmount * delta * turnSpeed,
+  yawAmount * delta * turnSpeed,
+  0,
+  'YXZ'
+);
+
+// Aplica la rotación acumulativa
+const q = new THREE.Quaternion().setFromEuler(rotationVector);
+playerShip.quaternion.multiply(q);
+playerShip.quaternion.normalize();
+
 
 
         // *** Lógica de Traslación con Velocidad y Damping ***
