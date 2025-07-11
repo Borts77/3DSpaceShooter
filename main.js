@@ -117,6 +117,12 @@ window.addEventListener('keyup', e => {
     }
   }
 });
+const mouse = new THREE.Vector2(0, 0);
+
+window.addEventListener('mousemove', (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+});
 
 /* ---------- Menu and Game Over Interaction ---------- */
 const mainMenu = document.getElementById('main-menu');
@@ -251,8 +257,16 @@ function animate() {
     // Only update player and their related elements if playerShip exists (which it should if gameStarted is true)
     if (playerShip) {
 
-        /* 2 — Mover y rotar nave (usando nuestra lógica) */
-        updatePlayer(playerShip, delta, playerSpeedFactor, input);
+        // CONTROL DE MOUSE Y MOVIMIENTO FLUIDO
+const rotationSpeed = 2.5;
+const pitch = -mouse.y * 0.5;
+const yaw = -mouse.x * 0.5;
+
+const targetRotation = new THREE.Euler(pitch, yaw, 0, 'YXZ');
+const targetQuaternion = new THREE.Quaternion().setFromEuler(targetRotation);
+
+playerShip.quaternion.slerp(targetQuaternion, delta * rotationSpeed);
+
 
         // *** Lógica de Traslación con Velocidad y Damping ***
         const invertThrust = true;
@@ -390,11 +404,11 @@ function animate() {
 
 
         /* 8 — Cámara y efectos de fondo */
-        // *** Lógica de cámara seguidora usando nuestro offset y la cámara de juego ***
-        const offset = gameCameraOffset.clone().applyQuaternion(playerShip.quaternion);
-        const cameraPosition = playerShip.position.clone().add(offset);
-        gameCamera.position.copy(cameraPosition);
-        gameCamera.lookAt(playerShip.position);
+        const desiredOffset = gameCameraOffset.clone().applyQuaternion(playerShip.quaternion);
+const desiredCameraPosition = playerShip.position.clone().add(desiredOffset);
+gameCamera.position.lerp(desiredCameraPosition, 0.1); // cámara suave
+gameCamera.lookAt(playerShip.position);
+
 
         // Rotar fondo de puntos y disco de acreción (si aplica)
         stars.rotation.y += 0.01 * envSpeedFactor * delta;
