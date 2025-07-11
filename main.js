@@ -259,24 +259,28 @@ function animate() {
 
         // CONTROL DE MOUSE Y MOVIMIENTO FLUIDO
 // CONTROL SUAVE DE NAVE ESTILO ARCADE
-const pitchAmount = -mouse.y * 1.5; // arriba/abajo
-const yawAmount = -mouse.x * 1.5;   // izquierda/derecha
+// ROTACIÓN TOTAL estilo Ace Combat
+const pitchAmount = -mouse.y * Math.PI; // arriba/abajo
+const yawAmount = -mouse.x * Math.PI;   // izquierda/derecha
+const turnSpeed = 1.5; // velocidad de giro
 
-// velocidad de rotación
-const turnSpeed = 1.5;
+const deltaPitch = pitchAmount * delta * turnSpeed;
+const deltaYaw   = yawAmount * delta * turnSpeed;
 
-// Crea un vector de rotación local (pitch, yaw, roll)
-const rotationVector = new THREE.Euler(
-  pitchAmount * delta * turnSpeed,
-  yawAmount * delta * turnSpeed,
-  0,
-  'YXZ'
-);
+// Rotaciones independientes en eje local
+const pitchQuat = new THREE.Quaternion();
+const yawQuat = new THREE.Quaternion();
 
-// Aplica la rotación acumulativa
-const q = new THREE.Quaternion().setFromEuler(rotationVector);
-playerShip.quaternion.multiply(q);
+// Pitch (eje X local)
+pitchQuat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), deltaPitch);
+// Yaw (eje Y local)
+yawQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), deltaYaw);
+
+// Aplicamos yaw y luego pitch al quaternion actual de la nave
+playerShip.quaternion.multiply(yawQuat);
+playerShip.quaternion.multiply(pitchQuat);
 playerShip.quaternion.normalize();
+
 
 
 
