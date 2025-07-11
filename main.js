@@ -64,23 +64,17 @@ let explosions = [];
 
 /* ---------- input WASD + M + N + Espacio ---------- */
 const input = {
-  pitchUp: false, pitchDown: false,
-  yawLeft: false, yawRight: false,
-  rollLeft: false, rollRight: false,
   thrust: false,
   boost: false,
   shoot: false
 };
 
 const keyMap = {
-  KeyW: 'pitchDown', KeyS: 'pitchUp',
-  KeyA: 'yawLeft', KeyD: 'yawRight',
-  KeyQ: 'rollLeft', KeyE: 'rollRight',
-
-  KeyM: 'thrust',
-  KeyN: 'boost',
+  KeyW: 'thrust',
+  ShiftLeft: 'boost',
   Space: 'shoot'
 };
+
 
 // *** Variables para el manejo del movimiento ***
 let velocity = new THREE.Vector3();
