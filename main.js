@@ -271,7 +271,20 @@ const pitchQuat = new THREE.Quaternion();
 const yawQuat = new THREE.Quaternion();
 
 // Pitch (eje X local)
-pitchQuat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), deltaPitch);
+// Límite al pitch para que no se invierta la nave
+const currentEuler = new THREE.Euler().setFromQuaternion(playerShip.quaternion, 'YXZ');
+let pitch = currentEuler.x + deltaPitch;
+
+// Limitar pitch entre -85° y +85°
+const maxPitch = Math.PI / 2 * 0.95;
+pitch = Math.max(-maxPitch, Math.min(maxPitch, pitch));
+
+const yaw = currentEuler.y + deltaYaw;
+
+// Reconstruir la rotación final sin invertir roll
+const newQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitch, yaw, 0, 'YXZ'));
+playerShip.quaternion.slerp(newQuat, delta * 6.0); // suavizado más rápido
+
 // Yaw (eje Y local)
 yawQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), deltaYaw);
 
@@ -418,11 +431,19 @@ playerShip.quaternion.normalize();
         }
 
 
-        /* 8 — Cámara y efectos de fondo */
-        const desiredOffset = gameCameraOffset.clone().applyQuaternion(playerShip.quaternion);
-const desiredCameraPosition = playerShip.position.clone().add(desiredOffset);
-gameCamera.position.lerp(desiredCameraPosition, 0.1); // cámara suave
-gameCamera.lookAt(playerShip.position);
+        // CÁMARA SUAVE Y ESTABLE estilo tercera persona
+const offsetWorld = gameCameraOffset.clone().applyQuaternion(playerShip.quaternion);
+const targetCameraPosition = playerShip.position.clone().add(offsetWorld);
+
+// Que no se invierta cuando la nave gira completamente
+if (!gameCamera.position.equals(targetCameraPosition)) {
+    gameCamera.position.lerp(targetCameraPosition, 0.15);
+}
+
+// Asegura que la cámara siempre mire hacia la nave con suavidad
+const lookAtTarget = playerShip.position.clone();
+gameCamera.lookAt(lookAtTarget);
+
 
 
         // Rotar fondo de puntos y disco de acreción (si aplica)
