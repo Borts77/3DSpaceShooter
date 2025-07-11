@@ -138,8 +138,7 @@ tryAgainButton.addEventListener('click', restartGame); // Add event listener for
 
 
 // *** Offset local de la cámara de juego ***
-const gameCameraOffset = new THREE.Vector3(0.0, 5.0, -14.5);
-
+const gameCameraOffset = new THREE.Vector3(0, 2.5, -8); // Más cercana, más arriba
 
 async function startGame() {
   // Use a flag to prevent multiple game starts if it's already running
